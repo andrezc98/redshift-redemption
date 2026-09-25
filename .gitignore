@@ -1,0 +1,24 @@
+# terraform (local state on purpose: one operator, short-lived lab; it carries account data)
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfplan
+.terraform.tfstate.lock.info
+terraform.tfvars
+infra/outputs.json
+
+# python
+.venv/
+__pycache__/
+*.pyc
+
+# results: CSVs in results/<fecha>/ are committed; raw exports are not
+results/raw/
+
+# secrets / local
+.env
+.sanitize-extra
+.DS_Store
+
+# superpowers SDD scratch
+.superpowers/
