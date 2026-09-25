@@ -642,7 +642,10 @@ def _wait(client, sid, poll_s, timeout_s, sleep, clock):
 
 
 def run_batch(client, target, label, sqls, *, poll_s=2.0, timeout_s=3600, sleep=time.sleep, clock=time.monotonic):
-    sid = client.batch_execute_statement(Sqls=preamble(label) + list(sqls), StatementName=label, **target.api_kwargs())["Id"]
+    # AUTO_COMMIT: same session (the SETs stick) but no wrapping transaction, which
+    # CREATE EXTERNAL TABLE and VACUUM refuse to run inside.
+    sid = client.batch_execute_statement(Sqls=preamble(label) + list(sqls), StatementName=label,
+                                         ExecutionMode="AUTO_COMMIT", **target.api_kwargs())["Id"]
     d, waited = _wait(client, sid, poll_s, timeout_s, sleep, clock)
     if d is None:
         return BatchResult(label, "TIMEOUT", sid, waited, f"timeout after {timeout_s}s")

@@ -41,3 +41,11 @@ def test_fetch_paginates_and_maps_values():
         {"query_label": "a1b2.p1.3", "result_cache_hit": False},
         {"query_label": "a1b2.p1.7", "result_cache_hit": None},
     ]
+
+
+def test_run_batch_autocommits_so_non_transactional_ddl_can_run():
+    # CREATE EXTERNAL TABLE (the Parquet lake build) can't run inside a transaction,
+    # and the Data API runs a batch as one transaction unless told otherwise.
+    client = FakeDataClient()
+    run_batch(client, T, "a1b2.l1.b_item", ["CREATE EXTERNAL TABLE pq.item STORED AS PARQUET LOCATION 's3://b/p/' AS SELECT 1"], sleep=lambda s: None)
+    assert client.calls[0][1]["ExecutionMode"] == "AUTO_COMMIT"
