@@ -18,6 +18,6 @@ lado, en el tamaño de clúster que la mayoría de los equipos opera.
 
 ## Problemas conocidos
 
-- `rr` falla con `No module named 'rr'`: en macOS, Python 3.13 ignora los `.pth`
-  marcados como ocultos y a veces el venv queda así. Arreglo:
-  `chflags nohidden runner/.venv/lib/python3.13/site-packages/*.pth`
+- `rr` falla con `No module named 'rr'`: en esta Mac, Python 3.13 ignora los `.pth`
+  que macOS marca como ocultos, y `uv` los vuelve a crear ocultos en cada sync. Por
+  eso el runbook define `rr()` con `PYTHONPATH=runner`, que no depende de los `.pth`.

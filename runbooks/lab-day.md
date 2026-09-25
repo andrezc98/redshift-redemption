@@ -4,13 +4,12 @@ Todo desde la raíz del repo, en us-east-1:
 
 ```bash
 export AWS_PROFILE=sura-sandbox AWS_REGION=us-east-1
-rr() { uv run --project runner rr "$@"; }
+rr() { PYTHONPATH="$PWD/runner" uv run --project runner rr "$@"; }   # PYTHONPATH: ver README, problemas conocidos
 tf() { terraform -chdir=infra "$@"; }
 ```
 
 Cada paso marcado **GO** espera el "dale" del speaker. Al cerrar cada sesión:
 clústeres pausados o borrados, verificado con `aws redshift describe-clusters`.
-Si `rr` falla con `No module named 'rr'`, ver "Problemas conocidos" en el README.
 
 ## 0. Antes de gastar
 1. Llenar `results/prices.md` con la API de precios del día.
