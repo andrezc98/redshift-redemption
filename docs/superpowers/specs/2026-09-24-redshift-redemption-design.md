@@ -111,7 +111,20 @@ mark the run invalid instead of silently counting.
 Controls: pause between sessions, same-day teardown, Budget alert USD 80. The
 100 GB load rate re-estimates the 1 TB load before committing to it.
 
-## 7. Out of scope
+## 7. Timeline (event 2026-10-08)
+
+| When | What |
+|---|---|
+| 09-24 → 09-25 | Plan tasks 1–11: runner, SQL, Terraform, runbook (no AWS spend) |
+| 09-26 → 09-27 | Task 12: 100 GB dev session; re-estimate the 1 TB load |
+| 10-02 → 10-04 | Task 13: 1 TB load, lake, scenarios, drill, Serverless, teardown |
+| 10-05 → 10-07 | `slides/contenido.md`, speaker notes, rehearsal |
+| 10-08 | Talk |
+
+Slack: if the dev session slips past 09-28, cut the Serverless run and the
+concurrency scenario to 15 minutes before cutting anything else.
+
+## 8. Out of scope
 
 Snowflake/Databricks/BigQuery numbers; the 4.2x competitive claim; 3 TB+;
 concurrency scaling; reserved pricing (one slide of arithmetic at most).
