@@ -11,3 +11,5 @@ lado, en el tamaño de clúster que la mayoría de los equipos opera.
 
 ## Versiones probadas
 (se llena con cada corrida; verificar contra la documentación del día)
+
+- Runner: Python 3.13, boto3 1.43.102, pytest 9.1.1 (uv.lock, 2026-09-24)
