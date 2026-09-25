@@ -13,7 +13,7 @@ def percentile(values: list[float], q: float) -> float:
 
 
 def _ok(rows):
-    return [r for r in rows if r["server_status"] == "success"]
+    return [r for r in rows if r.get("status", "FINISHED") == "FINISHED" and r["server_status"] == "success"]
 
 
 def per_query(timings: list[dict], warmup: int = 1) -> dict[str, float]:
@@ -26,6 +26,8 @@ def per_query(timings: list[dict], warmup: int = 1) -> dict[str, float]:
 
 def summary(per_q: dict[str, float]) -> dict:
     xs = list(per_q.values())
+    if not xs:
+        return {"n": 0, "total_s": 0.0, "p50_s": float("nan"), "p95_s": float("nan")}
     return {"n": len(xs), "total_s": sum(xs), "p50_s": percentile(xs, 50), "p95_s": percentile(xs, 95)}
 
 
@@ -35,6 +37,8 @@ def speedups(base: dict, cand: dict) -> dict[str, float]:
 
 def geomean(values) -> float:
     xs = list(values)
+    if not xs:
+        return float("nan")
     return math.exp(sum(math.log(x) for x in xs) / len(xs))
 
 
@@ -50,3 +54,15 @@ def throughput(timings: list[dict], duration_s: float) -> dict:
     queues = [float(r["queue_s"]) for r in ok] or [0.0]
     return {"queries_per_hour": len(ok) * 3600 / duration_s, "queue_p50_s": percentile(queues, 50),
             "queue_p95_s": percentile(queues, 95), "failed": len(timings) - len(ok)}
+
+
+def excluded(base: list[dict], cand: list[dict]) -> list[str]:
+    """Names measured on one side only, with why, so the report never silently compares 19 vs 20."""
+    bq, cq = per_query(base), per_query(cand)
+    out = []
+    for side, rows, have in (("base", base, bq), ("candidato", cand, cq)):
+        for name in sorted((set(bq) | set(cq)) - set(have)):
+            bad = [r for r in rows if r["name"] == name and r not in _ok(rows)]
+            why = f"{bad[-1]['status']} {bad[-1].get('error', '')}".strip() if bad else "not run"
+            out.append(f"{name}: {side} {why}")
+    return out

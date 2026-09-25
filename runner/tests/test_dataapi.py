@@ -49,3 +49,14 @@ def test_run_batch_autocommits_so_non_transactional_ddl_can_run():
     client = FakeDataClient()
     run_batch(client, T, "a1b2.l1.b_item", ["CREATE EXTERNAL TABLE pq.item STORED AS PARQUET LOCATION 's3://b/p/' AS SELECT 1"], sleep=lambda s: None)
     assert client.calls[0][1]["ExecutionMode"] == "AUTO_COMMIT"
+
+
+def test_run_batch_timeout_survives_cancel_race():
+    class Raced(FakeDataClient):
+        def cancel_statement(self, Id):
+            raise RuntimeError("statement already finished")
+
+    ticks = iter(range(0, 10_000, 100))
+    r = run_batch(Raced(statuses=("STARTED",)), T, "a1b2.p1.72", ["select 1"], timeout_s=250,
+                  sleep=lambda s: None, clock=lambda: next(ticks))
+    assert r.status == "TIMEOUT"

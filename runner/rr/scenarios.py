@@ -42,17 +42,27 @@ def _row(run_id, scenario, stream, pass_no, name, label, r: BatchResult) -> Row:
     return Row(run_id, scenario, stream, pass_no, name, label, r.status, r.duration_s, r.error)
 
 
-def serial(exec_fn: Exec, blocks: dict, *, run_id: str, scenario: str, passes: int) -> list[Row]:
+def _safe(exec_fn: Exec, label: str, sqls: list[str]) -> BatchResult:
+    """An AWS exception (expired SSO, throttling, cluster unavailable) becomes an ERROR row, not a lost run."""
+    try:
+        return exec_fn(label, sqls)
+    except Exception as e:
+        return BatchResult(label, "ERROR", "", 0.0, f"{type(e).__name__}: {e}")
+
+
+def serial(exec_fn: Exec, blocks: dict, *, run_id: str, scenario: str, passes: int, on_row=None) -> list[Row]:
     rows = []
     for p in range(1, passes + 1):
         for name, sqls in blocks.items():
             label = make_label(run_id, f"{scenario[0]}{p}", name)
-            rows.append(_row(run_id, scenario, 0, p, name, label, exec_fn(label, sqls)))
+            rows.append(_row(run_id, scenario, 0, p, name, label, _safe(exec_fn, label, sqls)))
+            if on_row:
+                on_row(rows[-1])
     return rows
 
 
 def concurrent(exec_fn: Exec, blocks: dict, *, run_id: str, streams: int, duration_s: float, seed: int,
-               clock=time.monotonic) -> list[Row]:
+               clock=time.monotonic, on_row=None) -> list[Row]:
     deadline = clock() + duration_s
 
     def stream(s: int) -> list[Row]:
@@ -65,7 +75,9 @@ def concurrent(exec_fn: Exec, blocks: dict, *, run_id: str, streams: int, durati
                 if clock() >= deadline:
                     break
                 label = make_label(run_id, f"s{s}{rnd}", name)
-                out.append(_row(run_id, "concurrency", s, rnd, name, label, exec_fn(label, blocks[name])))
+                out.append(_row(run_id, "concurrency", s, rnd, name, label, _safe(exec_fn, label, blocks[name])))
+                if on_row:
+                    on_row(out[-1])
         return out
 
     with ThreadPoolExecutor(max_workers=streams) as pool:

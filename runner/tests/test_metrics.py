@@ -66,3 +66,21 @@ def test_timings_keeps_rows_missing_from_history():
     rows = [{"label": "a1b2.p1.3", "name": "query3", "pass_no": "1", "stream": "0", "status": "TIMEOUT"}]
     out = timings(rows, {})
     assert out[0]["status"] == "TIMEOUT" and out[0]["elapsed_s"] == ""
+
+
+def test_timings_carry_version_cache_and_compute_type():
+    # Final review I2: the report must be able to compare RA3 vs RG versions.
+    agg = aggregate([h("a1b2.p1.3", 1)], [])
+    out = timings([{"label": "a1b2.p1.3", "status": "FINISHED"}], agg)
+    assert (out[0]["redshift_version"], out[0]["cache_hit"], out[0]["compute_type"]) == ("1.0.99999", False, "primary")
+
+
+def test_report_checks_flags_version_mismatch_and_refuses_invalid_rows():
+    from rr.metrics import report_checks
+
+    base = [{"label": "a.p2.3", "redshift_version": "1.0.1", "cache_hit": "False", "compute_type": "primary"}]
+    cand = [{"label": "b.p2.3", "redshift_version": "1.0.2", "cache_hit": "True", "compute_type": "primary-scale"}]
+    warnings, fatal = report_checks(base, cand)
+    assert any("1.0.1" in w and "1.0.2" in w for w in warnings)
+    assert any("cache" in f for f in fatal) and any("primary-scale" in f for f in fatal)
+    assert report_checks(base, base) == ([], [])

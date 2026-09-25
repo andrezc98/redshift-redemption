@@ -53,8 +53,21 @@ def load_curated(path: str, bench: dict) -> dict[str, str]:
 def load_blocks(tables_sql: str, copy_sql: str, scale: str) -> dict[str, list[str]]:
     if scale not in SCALES:
         raise ValueError(f"scale must be one of {SCALES}, got {scale!r}")
-    blocks = {"tables": split_statements(open(tables_sql).read())}
+    # Re-runnable: a restarted load must not append the data twice (TRUNCATE commits on its own).
+    creates = split_statements(open(tables_sql).read())
+    blocks = {"tables": [re.sub(r"(?i)^create table ", "create table if not exists ", s) for s in creates]}
     for line in open(copy_sql):
         stmt = line.strip().rstrip(";").replace("/2.13/1TB/", f"/2.13/{scale}/")
-        blocks[_COPY_TABLE.match(stmt).group(1)] = [stmt]
+        table = _COPY_TABLE.match(stmt).group(1)
+        blocks[table] = [f"TRUNCATE {table}", stmt]
     return blocks
+
+
+def compare_counts(actual: dict[str, int], expected: dict[str, int]) -> list[str]:
+    out = []
+    for table, rows in expected.items():
+        if table not in actual:
+            out.append(f"{table}: missing")
+        elif int(actual[table]) != rows:
+            out.append(f"{table}: {actual[table]} rows, expected {rows}")
+    return out

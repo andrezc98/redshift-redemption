@@ -26,3 +26,10 @@ def test_elt_blocks():
     blocks = parse_blocks(render((SQL / "elt.sql").read_text(), {"scale": "1TB"}))
     assert list(blocks) == ["ecopy", "ectas"]
     assert "/2.13/1TB/store_returns/" in blocks["ecopy"][2]
+
+
+def test_glue_fallback_uses_external_schema_not_auto_mount():
+    # Final review I5: awsdatacatalog auto-mount needs an IAM-identity connection; the runner uses DbUser.
+    text = (SQL / "lake_build_glue.sql").read_text()
+    assert "awsdatacatalog" not in text and "CREATE EXTERNAL SCHEMA IF NOT EXISTS ice" in text
+    assert LAKE_PREFIX["glue"] == "ice."

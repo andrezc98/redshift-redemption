@@ -34,3 +34,22 @@ def test_throughput_counts_success_per_hour():
     rows = [t("a", 1, 1, queue=0.5), t("b", 1, 1, queue=1.5), t("c", 1, 1, status="failed")]
     out = throughput(rows, duration_s=1800)
     assert out["queries_per_hour"] == 4.0 and out["failed"] == 1 and out["queue_p50_s"] == 1.0
+
+
+def test_per_query_requires_runner_finished_too():
+    # Final review I3: a block the runner saw fail must not count, whatever the history says.
+    rows = [dict(t("q3", 2, 10), status="TIMEOUT"), dict(t("q7", 2, 5), status="FINISHED")]
+    assert per_query(rows) == {"q7": 5.0}
+
+
+def test_excluded_lists_names_missing_on_either_side():
+    from rr.stats import excluded
+
+    base = [dict(t("q3", 2, 1), status="FINISHED"), dict(t("q7", 2, 1), status="FINISHED")]
+    cand = [dict(t("q3", 2, 1), status="FINISHED"), dict(t("q7", 2, 1, status="failed"), status="FAILED", error="boom")]
+    assert excluded(base, cand) == ["q7: candidato FAILED boom"]
+
+
+def test_summary_and_geomean_handle_empty():
+    assert summary({})["n"] == 0
+    assert geomean([]) != geomean([])  # nan

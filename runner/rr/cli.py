@@ -8,17 +8,21 @@ from pathlib import Path
 from rr import cost, metrics, queries, stats
 from rr.config import Target, data_client
 from rr.dataapi import fetch, run_batch
-from rr.results import read_rows, write_rows
+from rr.results import RowSink, read_rows
 from rr.scenarios import concurrent, new_run_id, serial
 
 ROOT = Path(__file__).resolve().parents[2]
 SQL = ROOT / "sql"
 LAKE_PREFIX = {"local": "", "s3tables": '"rr-lake@s3tablescatalog".tpcds.',
-               "glue": "awsdatacatalog.rr_iceberg.", "parquet": "pq."}
+               "glue": "ice.", "parquet": "pq."}
 
 
 def out_path(target: Target, scenario: str, run_id: str, day: str) -> str:
     return f"results/{day}/{target.name}-{scenario}-{run_id}.csv"
+
+
+def counts_sql(tables: list[str]) -> str:
+    return " UNION ALL ".join(f"SELECT '{t}' AS t, COUNT(*) AS n FROM {t}" for t in tables)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -39,6 +43,8 @@ def build_parser() -> argparse.ArgumentParser:
     cmd("elt", scale=dict(required=True, choices=queries.SCALES), passes=dict(type=int, default=2))
     cmd("sql", file=dict(required=True), var=dict(action="append", default=[]))
     cmd("metrics", csv=dict(required=True))
+    cmd("query", file=dict(required=True), var=dict(action="append", default=[]))
+    cmd("counts", scale=dict(required=True, choices=queries.SCALES))
     cmd("report", base=dict(required=True), cand=dict(required=True), out=dict(required=True),
         classes=dict(default=str(SQL / "curated.txt")), prices=dict(default=str(ROOT / "results/prices.md")),
         base_node=dict(default="ra3.xlplus"), cand_node=dict(default="rg.xlarge"), nodes=dict(type=int, default=2))
@@ -65,15 +71,15 @@ def _run(args) -> int:
     exec_fn = partial(run_batch, client, args.target, timeout_s=6 * 3600 if args.cmd == "load" else 3600)
     scenario, blocks = _blocks(args)
     print(f"run {run_id}: {scenario} on {args.target.name}, {len(blocks)} blocks", flush=True)
-    if args.cmd == "concurrency":
-        rows = concurrent(lambda lb, sq: exec_fn(lb, sq), blocks, run_id=run_id, streams=args.streams,
-                          duration_s=args.minutes * 60, seed=args.seed)
-    else:
-        passes = getattr(args, "passes", 1)
-        rows = serial(lambda lb, sq: exec_fn(lb, sq), blocks, run_id=run_id, scenario=scenario, passes=passes)
     path = ROOT / out_path(args.target, scenario, run_id, dt.date.today().isoformat())
     path.parent.mkdir(parents=True, exist_ok=True)
-    write_rows(str(path), rows)
+    with RowSink(str(path)) as sink:  # rows hit disk as they finish: a crash keeps what ran
+        if args.cmd == "concurrency":
+            rows = concurrent(exec_fn, blocks, run_id=run_id, streams=args.streams,
+                              duration_s=args.minutes * 60, seed=args.seed, on_row=sink)
+        else:
+            rows = serial(exec_fn, blocks, run_id=run_id, scenario=scenario,
+                          passes=getattr(args, "passes", 1), on_row=sink)
     failed = [r for r in rows if r.status != "FINISHED"]
     print(f"wrote {path} ({len(rows)} rows, {len(failed)} not FINISHED)")
     return 0
@@ -98,15 +104,54 @@ def _metrics(args) -> int:
     return 3 if found else 0
 
 
+def _query(args) -> int:
+    """Prints result rows (version, skew, SHOW settings); rr sql only records timings."""
+    client = data_client()
+    values = dict(v.split("=", 1) for v in args.var)
+    for name, sqls in queries.parse_blocks(queries.render(Path(args.file).read_text(), values)).items():
+        if len(sqls) != 1:
+            raise SystemExit(f"rr query runs single-statement blocks; {name} has {len(sqls)}")
+        rows = fetch(client, args.target, sqls[0])
+        w = csv.DictWriter(sys.stdout, fieldnames=list(rows[0]) if rows else ["(no rows)"])
+        print(f"# {name}")
+        w.writeheader()
+        w.writerows(rows)
+    return 0
+
+
+def _counts(args) -> int:
+    client = data_client()
+    tables = [t for t in queries.load_blocks(str(SQL / "tables.sql"), str(SQL / "copy.sql"), args.scale) if t != "tables"]
+    actual = {r["t"]: int(r["n"]) for r in fetch(client, args.target, counts_sql(tables))}
+    for t in tables:
+        print(f"{t},{actual.get(t, 'missing')}")
+    if args.scale != "1TB":
+        return 0  # awslabs only publishes expected counts for 1 TB
+    with open(SQL / "expected_counts_1tb.csv") as f:
+        expected = {r["table"]: int(r["rows"]) for r in csv.DictReader(f)}
+    bad = queries.compare_counts(actual, expected)
+    for line in bad:
+        print(f"MISMATCH: {line}", file=sys.stderr)
+    return 4 if bad else 0
+
+
 def _report(args) -> int:
     base, cand = read_rows(args.base), read_rows(args.cand)
+    warnings, fatal = metrics.report_checks(base, cand)
+    for line in fatal:
+        print(f"INVALID: {line}", file=sys.stderr)
+    if fatal:
+        return 3
     bq, cq = stats.per_query(base), stats.per_query(cand)
     sp = stats.speedups(bq, cq)
     bench = queries.parse_blocks((SQL / "vendor/query_0.sql").read_text())
     classes = queries.load_curated(args.classes, bench)
     prices = cost.load_prices(args.prices)
     bs, cs = stats.summary(bq), stats.summary(cq)
+    versions = [sorted({r["redshift_version"] for r in rows if r.get("redshift_version")}) for rows in (base, cand)]
     lines = [
+        f"Versión de Redshift: base {', '.join(versions[0]) or '?'} · candidato {', '.join(versions[1]) or '?'}",
+        *[f"> ⚠ {w}" for w in warnings], "",
         "| | base | candidato |", "|---|---|---|",
         f"| consultas medidas | {bs['n']} | {cs['n']} |",
         f"| total (s) | {bs['total_s']:.1f} | {cs['total_s']:.1f} |",
@@ -118,6 +163,7 @@ def _report(args) -> int:
         *[f"| {c} | {v:.2f}x |" for c, v in sorted(stats.by_class(sp, classes).items())],
         "", "| consulta | base (s) | candidato (s) | aceleración |", "|---|---|---|---|",
         *[f"| {n} | {bq[n]:.2f} | {cq[n]:.2f} | {sp[n]:.2f}x |" for n in sorted(sp)],
+        "", "Excluidas de la comparación:", *([f"- {x}" for x in stats.excluded(base, cand)] or ["- ninguna"]),
     ]
     Path(args.out).write_text("\n".join(lines) + "\n")
     print(f"wrote {args.out}")
@@ -130,6 +176,10 @@ def main(argv=None) -> int:
         return _metrics(args)
     if args.cmd == "report":
         return _report(args)
+    if args.cmd == "query":
+        return _query(args)
+    if args.cmd == "counts":
+        return _counts(args)
     return _run(args)
 
 

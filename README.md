@@ -15,3 +15,9 @@ lado, en el tamaño de clúster que la mayoría de los equipos opera.
 - Runner: Python 3.13, boto3 1.43.102, pytest 9.1.1 (uv.lock, 2026-09-24)
 - Consultas y DDL: awslabs/amazon-redshift-utils `CloudDataWarehouseBenchmark/Cloud-DWB-Derived-from-TPCDS/1TB` @ f208c11 (sin modificar, `sql/vendor/`)
 - Terraform >= 1.15, hashicorp/aws 6.66.0 (lock), estado local; VPC propia (la sandbox no tiene VPC por defecto en us-east-1)
+
+## Problemas conocidos
+
+- `rr` falla con `No module named 'rr'`: en macOS, Python 3.13 ignora los `.pth`
+  marcados como ocultos y a veces el venv queda así. Arreglo:
+  `chflags nohidden runner/.venv/lib/python3.13/site-packages/*.pth`

@@ -24,7 +24,10 @@ def _wait(client, sid, poll_s, timeout_s, sleep, clock):
         if d["Status"] in TERMINAL:
             return d, clock() - start
         if clock() - start > timeout_s:
-            client.cancel_statement(Id=sid)
+            try:
+                client.cancel_statement(Id=sid)
+            except Exception:  # finished between the poll and the cancel
+                pass
             return None, clock() - start
         sleep(poll_s)
 

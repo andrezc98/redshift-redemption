@@ -75,3 +75,30 @@ def test_write_and_read_rows_roundtrip(tmp_path):
     write_rows(str(path), rows)
     back = read_rows(str(path))
     assert [r["label"] for r in back] == ["a1b2.p1.3", "a1b2.p1.96"]
+
+
+def test_exec_exception_becomes_error_row_and_run_continues():
+    # Final review I4: expired credentials or throttling must not lose the run.
+    def boom(label, sqls):
+        if label.endswith(".3"):
+            raise RuntimeError("ExpiredToken")
+        return ok(label, sqls)
+
+    rows = serial(boom, BLOCKS, run_id="a1b2", scenario="power", passes=1)
+    assert [(r.status, r.error) for r in rows] == [("ERROR", "RuntimeError: ExpiredToken"), ("FINISHED", "")]
+
+
+def test_rows_are_streamed_to_csv_as_they_finish(tmp_path):
+    from rr.results import RowSink
+
+    path = tmp_path / "live.csv"
+    seen = []
+    with RowSink(str(path)) as sink:
+        def spy(label, sqls):
+            seen.append(path.read_text().count("\n"))  # lines on disk before this block runs
+            return ok(label, sqls)
+
+        serial(spy, BLOCKS, run_id="a1b2", scenario="power", passes=1, on_row=sink)
+    assert seen == [0, 2]  # header + first row already flushed when the 2nd block starts
+    assert [r["label"] for r in read_rows(str(path))] == ["a1b2.p1.3", "a1b2.p1.96"]
+

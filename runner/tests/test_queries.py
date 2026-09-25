@@ -53,9 +53,24 @@ def test_load_blocks_renders_scale():
     blocks = load_blocks(str(SQL / "tables.sql"), str(SQL / "copy.sql"), "100GB")
     assert len(blocks["tables"]) == 25
     assert len(blocks) == 25  # tables + 24 copy blocks
-    assert "/2.13/100GB/store_sales/" in blocks["store_sales"][0]
+    assert "/2.13/100GB/store_sales/" in blocks["store_sales"][1]  # [0] is the TRUNCATE
 
 
 def test_load_blocks_rejects_unknown_scale():
     with pytest.raises(ValueError):
         load_blocks(str(SQL / "tables.sql"), str(SQL / "copy.sql"), "10TB")
+
+
+def test_load_blocks_rerun_safe_create_if_not_exists_and_truncate_before_copy():
+    # Final review C1: a restarted load must not append the data twice.
+    blocks = load_blocks(str(SQL / "tables.sql"), str(SQL / "copy.sql"), "100GB")
+    assert all(s.lower().startswith("create table if not exists ") for s in blocks["tables"])
+    assert blocks["store_sales"][0] == "TRUNCATE store_sales"
+    assert blocks["store_sales"][1].startswith("copy store_sales from")
+
+
+def test_compare_counts_reports_mismatch_and_missing():
+    from rr.queries import compare_counts
+
+    assert compare_counts({"a": 10, "b": 5}, {"a": 10, "b": 5}) == []
+    assert compare_counts({"a": 20}, {"a": 10, "b": 5}) == ["a: 20 rows, expected 10", "b: missing"]

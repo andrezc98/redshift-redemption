@@ -68,6 +68,25 @@ def timings(rows: list[dict], agg: dict) -> list[dict]:
         a = agg.get(r["label"])
         extra = {k: (round(a[k], 6) if a else "") for k in _US}
         extra["scanned_bytes"] = a["scanned_bytes"] if a else ""
+        extra["redshift_version"] = ";".join(sorted(a["versions"])) if a else ""
+        extra["cache_hit"] = a["cache_hit"] if a else ""
+        extra["compute_type"] = ";".join(sorted(a["compute_types"])) if a else ""
         extra["server_status"] = a["status"] if a else ""
         out.append({**r, **extra})
     return out
+
+
+def report_checks(base: list[dict], cand: list[dict]) -> tuple[list[str], list[str]]:
+    """(warnings, fatal) for a base-vs-candidate report. Fatal rows must never reach a slide."""
+    warnings, fatal = [], []
+    versions = [sorted({r["redshift_version"] for r in rows if r.get("redshift_version")}) for rows in (base, cand)]
+    if versions[0] != versions[1]:
+        warnings.append(f"Redshift versions differ: base {versions[0]} vs candidato {versions[1]}")
+    for side, rows in (("base", base), ("candidato", cand)):
+        hits = [r["label"] for r in rows if str(r.get("cache_hit")) == "True"]
+        if hits:
+            fatal.append(f"{side}: result cache hit on {hits[:5]}")
+        scaled = sorted({r["compute_type"] for r in rows if r.get("compute_type") not in (None, "", "primary")})
+        if scaled:
+            fatal.append(f"{side}: non-primary compute_type {scaled}")
+    return warnings, fatal
