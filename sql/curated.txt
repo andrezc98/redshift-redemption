@@ -1,0 +1,21 @@
+# name      class   why
+query3      scan    one fact table, filter + group by
+query7      scan    fact + 4 dims, averages
+query19     scan    fact + 5 dims, group by brand
+query28     scan    six aggregate buckets over store_sales
+query42     scan    fact + 2 dims, group by category
+query43     scan    weekday pivot over store_sales
+query48     scan    wide OR predicates, single sum
+query52     scan    fact + 2 dims, group by brand
+query55     scan    fact + 2 dims, group by brand
+query96     scan    count with 3 dims
+query14     cpu     cross-channel intersect, 2 statements
+query23     cpu     frequent items/best customers, 2 statements
+query47     cpu     window functions over monthly sales
+query57     cpu     window functions over catalog sales
+query64     cpu     15-way join
+query67     cpu     rollup + rank
+query72     cpu     inventory join, large intermediate
+query78     cpu     3 channel CTEs joined
+query89     cpu     window avg per group
+query98     cpu     ratio window over category
