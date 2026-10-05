@@ -117,6 +117,12 @@ resource "aws_redshift_cluster" "ra3" {
   publicly_accessible          = false
   encrypted                    = true
   skip_final_snapshot          = true
+
+  # A paused cluster reports cluster_type "single-node"; without this, any apply
+  # while paused (e.g. adding Serverless) plans a modify on it (seen 2026-10-05).
+  lifecycle {
+    ignore_changes = [cluster_type]
+  }
 }
 
 resource "aws_redshift_cluster" "rg" {
@@ -138,6 +144,12 @@ resource "aws_redshift_cluster" "rg" {
   publicly_accessible          = false
   encrypted                    = true
   skip_final_snapshot          = true
+
+  # A paused cluster reports cluster_type "single-node"; without this, any apply
+  # while paused (e.g. adding Serverless) plans a modify on it (seen 2026-10-05).
+  lifecycle {
+    ignore_changes = [cluster_type]
+  }
 }
 
 # --- Serverless context run: empty namespace; data arrives via restore-from-snapshot (runbook) ---
