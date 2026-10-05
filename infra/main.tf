@@ -89,10 +89,9 @@ resource "aws_redshift_parameter_group" "rr" {
     name  = "max_concurrency_scaling_clusters"
     value = "0"
   }
-  parameter {
-    name  = "enable_result_cache_for_session"
-    value = "false"
-  }
+  # No result-cache parameter: redshift-2.0 has none ("Could not find parameter",
+  # apply of 2026-10-05). It is a session SET (docs r_enable_result_cache_for_session),
+  # issued before every batch by runner/rr/dataapi.py and checked by rr metrics.
   parameter {
     name  = "require_ssl"
     value = "true"
