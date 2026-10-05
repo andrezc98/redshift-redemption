@@ -1,0 +1,7 @@
+run_id,scenario,stream,pass_no,name,label,status,api_seconds,error
+c7d8,lake_build_glue,0,1,schema,c7d8.l1.schema,FINISHED,0.340257282,
+c7d8,lake_build_glue,0,1,b_date_dim,c7d8.l1.b_date_dim,FAILED,0.100230293,Failed SubQueries: [3]
+c7d8,lake_build_glue,0,1,b_item,c7d8.l1.b_item,FAILED,0.102414786,Failed SubQueries: [3]
+c7d8,lake_build_glue,0,1,b_store,c7d8.l1.b_store,FAILED,0.093806641,Failed SubQueries: [3]
+c7d8,lake_build_glue,0,1,b_customer,c7d8.l1.b_customer,FAILED,0.103425182,Failed SubQueries: [3]
+c7d8,lake_build_glue,0,1,b_store_sales,c7d8.l1.b_store_sales,FINISHED,552.188795616,

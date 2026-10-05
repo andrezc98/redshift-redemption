@@ -1,0 +1,6 @@
+run_id,scenario,stream,pass_no,name,label,status,api_seconds,error
+f311,lake_build_s3tables,0,1,b_date_dim,f311.l1.b_date_dim,FAILED,0.099825814,Failed SubQueries: [3]
+f311,lake_build_s3tables,0,1,b_item,f311.l1.b_item,FAILED,0.097537174,Failed SubQueries: [3]
+f311,lake_build_s3tables,0,1,b_store,f311.l1.b_store,FAILED,0.103325772,Failed SubQueries: [3]
+f311,lake_build_s3tables,0,1,b_customer,f311.l1.b_customer,FAILED,0.106506523,Failed SubQueries: [3]
+f311,lake_build_s3tables,0,1,b_store_sales,f311.l1.b_store_sales,FAILED,0.104409427,Failed SubQueries: [3]

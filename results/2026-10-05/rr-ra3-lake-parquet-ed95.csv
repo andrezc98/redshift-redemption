@@ -1,0 +1,7 @@
+run_id,scenario,stream,pass_no,name,label,status,api_seconds,error
+ed95,lake-parquet,0,1,lq3,ed95.l1.lq3,FINISHED,10.472375472,
+ed95,lake-parquet,0,1,lq42,ed95.l1.lq42,FINISHED,9.661277536,
+ed95,lake-parquet,0,1,lq52,ed95.l1.lq52,FINISHED,4.619470684,
+ed95,lake-parquet,0,1,lq55,ed95.l1.lq55,FINISHED,8.787496934,
+ed95,lake-parquet,0,1,lqst,ed95.l1.lqst,FINISHED,10.317623773,
+ed95,lake-parquet,0,1,lqcu,ed95.l1.lqcu,FINISHED,10.869632172,

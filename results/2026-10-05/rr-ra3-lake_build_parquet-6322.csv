@@ -1,0 +1,7 @@
+run_id,scenario,stream,pass_no,name,label,status,api_seconds,error
+6322,lake_build_parquet,0,1,schema,6322.l1.schema,FINISHED,0.645850725,
+6322,lake_build_parquet,0,1,b_date_dim,6322.l1.b_date_dim,FINISHED,3.055940064,
+6322,lake_build_parquet,0,1,b_item,6322.l1.b_item,FINISHED,2.99309743,
+6322,lake_build_parquet,0,1,b_store,6322.l1.b_store,FINISHED,2.730247077,
+6322,lake_build_parquet,0,1,b_customer,6322.l1.b_customer,FINISHED,5.443934576,
+6322,lake_build_parquet,0,1,b_store_sales,6322.l1.b_store_sales,FINISHED,582.671328909,

@@ -40,19 +40,38 @@ rr query --target cluster:rr-ra3 --file sql/show_automount.sql
 `rr load` se puede relanzar si se corta: crea tablas con `IF NOT EXISTS` y
 hace `TRUNCATE` antes de cada `COPY`, así que no duplica datos.
 
-Lago. S3 Tables primero: en la consola de S3, habilitar "Integration with AWS
-analytics services" para la table bucket `rr-lake` y dar permisos de Lake
-Formation al rol `rr-redshift` sobre `s3tablescatalog/rr-lake/tpcds`
-(https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-tables-integrating-aws.html).
+Lago. Lake Formation gobierna el catálogo de Glue en esta cuenta: sin estos
+permisos al rol `rr-redshift` los builds fallan con
+`Insufficient Lake Formation permission(s): Required Create Table on rr_iceberg`.
+```bash
+A=$(aws sts get-caller-identity --query Account --output text)
+R="arn:aws:iam::$A:role/rr-redshift"
+for DB in rr_iceberg rr_parquet; do                             # GO
+  aws lakeformation grant-permissions --principal DataLakePrincipalIdentifier="$R" \
+    --resource "{\"Database\":{\"CatalogId\":\"$A\",\"Name\":\"$DB\"}}" \
+    --permissions CREATE_TABLE DESCRIBE ALTER DROP
+  aws lakeformation grant-permissions --principal DataLakePrincipalIdentifier="$R" \
+    --resource "{\"Table\":{\"CatalogId\":\"$A\",\"DatabaseName\":\"$DB\",\"TableWildcard\":{}}}" \
+    --permissions ALL
+done
+```
+Los permisos tardan unos segundos en propagarse: si la primera tabla del build
+falla con el mismo error, esperar y relanzar el build.
 ```bash
 BUCKET=$(tf output -raw lake_bucket)
-rr sql --target cluster:rr-ra3 --file sql/lake_build_s3tables.sql              # GO
+rr sql --target cluster:rr-ra3 --file sql/lake_build_glue.sql --var bucket=$BUCKET     # GO
 rr sql --target cluster:rr-ra3 --file sql/lake_build_parquet.sql --var bucket=$BUCKET
-rr lake --target cluster:rr-ra3 --variant s3tables --passes 1   # humo: todas las filas en FINISHED
+rr lake --target cluster:rr-ra3 --variant glue --passes 1       # humo: todas las filas en FINISHED
+rr lake --target cluster:rr-ra3 --variant parquet --passes 1
 ```
-Si S3 Tables no funciona en 1 hora, usar el respaldo:
-`rr sql --target cluster:rr-ra3 --file sql/lake_build_glue.sql --var bucket=$BUCKET`
-y `--variant glue` en adelante.
+S3 Tables queda fuera del lab. Los nombres `"rr-lake@s3tablescatalog"` pasan por
+el catálogo auto-montado, que exige conectarse con una identidad IAM (usuarios
+`IAM:`/`IAMR:`, federated access to Spectrum); el runner usa `awsuser` en todos
+los warehouses y recibe `ERROR: cross-database reference to database "rr-lake@s3tablescatalog" is not supported`.
+Cambiar de usuario solo para esa variante mediría otra ruta de permisos. Iceberg
+se mide con `glue` (esquema externo `ice`, rol del clúster).
+Fuente: https://docs.aws.amazon.com/redshift/latest/dg/querying-s3Tables.html
+("Method 3: Auto-mounted awsdatacatalog", leído el 2026-10-05).
 ```bash
 rr sql --target cluster:rr-ra3 --file sql/grant.sql             # antes del snapshot (Serverless lo necesita)
 aws redshift create-cluster-snapshot --cluster-identifier rr-ra3 --snapshot-identifier rr-ra3-100gb
@@ -73,7 +92,7 @@ aws redshift resume-cluster --cluster-identifier <id> 2>/dev/null; aws redshift 
 rr power --target cluster:<id>                                  # GO
 rr concurrency --target cluster:<id>                            # GO, 30 min
 rr lake --target cluster:<id> --variant local
-rr lake --target cluster:<id> --variant s3tables                # o glue
+rr lake --target cluster:<id> --variant glue
 rr lake --target cluster:<id> --variant parquet
 rr elt --target cluster:<id> --scale 100GB
 rr metrics --target cluster:<id> --csv <cada csv>
@@ -127,5 +146,5 @@ aws redshift delete-cluster-snapshot --snapshot-identifier rr-ra3-100gb   # cuan
 aws redshift describe-clusters --query 'Clusters[].ClusterIdentifier'   # esperado []
 aws redshift-serverless list-workgroups --query 'workgroups[].workgroupName'  # esperado []
 ```
-Si el destroy falla porque la table bucket no está vacía, borrar las tablas
+Solo si se usó S3 Tables: si el destroy falla porque la table bucket no está vacía, borrar las tablas
 que queden: `aws s3tables delete-table --table-bucket-arn "$(tf output -raw table_bucket_arn)" --namespace tpcds --name <t>`.

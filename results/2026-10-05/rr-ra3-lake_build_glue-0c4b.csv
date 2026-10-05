@@ -1,0 +1,7 @@
+run_id,scenario,stream,pass_no,name,label,status,api_seconds,error
+0c4b,lake_build_glue,0,1,schema,0c4b.l1.schema,FINISHED,0.320468615,
+0c4b,lake_build_glue,0,1,b_date_dim,0c4b.l1.b_date_dim,FAILED,0.102087163,Failed SubQueries: [3]
+0c4b,lake_build_glue,0,1,b_item,0c4b.l1.b_item,FAILED,0.097215783,Failed SubQueries: [3]
+0c4b,lake_build_glue,0,1,b_store,0c4b.l1.b_store,FAILED,0.115286752,Failed SubQueries: [3]
+0c4b,lake_build_glue,0,1,b_customer,0c4b.l1.b_customer,FAILED,0.101828228,Failed SubQueries: [3]
+0c4b,lake_build_glue,0,1,b_store_sales,0c4b.l1.b_store_sales,FAILED,0.101725351,Failed SubQueries: [3]

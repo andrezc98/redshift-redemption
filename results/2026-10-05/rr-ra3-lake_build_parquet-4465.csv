@@ -1,0 +1,7 @@
+run_id,scenario,stream,pass_no,name,label,status,api_seconds,error
+4465,lake_build_parquet,0,1,schema,4465.l1.schema,FINISHED,0.333468758,
+4465,lake_build_parquet,0,1,b_date_dim,4465.l1.b_date_dim,FAILED,0.095672263,Failed SubQueries: [3]
+4465,lake_build_parquet,0,1,b_item,4465.l1.b_item,FAILED,0.104342652,Failed SubQueries: [3]
+4465,lake_build_parquet,0,1,b_store,4465.l1.b_store,FAILED,0.103817487,Failed SubQueries: [3]
+4465,lake_build_parquet,0,1,b_customer,4465.l1.b_customer,FAILED,0.089546694,Failed SubQueries: [3]
+4465,lake_build_parquet,0,1,b_store_sales,4465.l1.b_store_sales,FAILED,0.096527572,Failed SubQueries: [3]
