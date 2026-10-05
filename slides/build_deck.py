@@ -40,30 +40,30 @@ BODY = "Arial"
 X0, Y0, W0, H0 = 1.0, 3.5, 15.9, 6.0  # inside the template's rounded panel (inches)
 
 # template slide per deck slide: 2 agenda, 4/6/8 title+content, 10/12/14 transition (dark variants)
-SRC = [4, 4, 2, 4, 10, 6, 6, 6, 12, 8, 8, 8, 14, 4, 4, 4, 4, 4, 4, 10, 6, 6, 6, 6, 6, 12, 8, 8, 14, 4, 4, 4, 6, 6, 6, 6, 6]
+SRC = [4, 4, 2, 4, 10, 6, 6, 6, 12, 8, 8, 8, 14, 4, 4, 4, 4, 4, 4, 10, 6, 6, 6, 6, 6, 12, 8, 8, 14, 4, 4, 4, 6, 6, 6, 6, 6, 6]
 
 
 # Quiz: at least 3 questions about the talk; Kahoot: 2 simpler ones (organizers' email, 2026-10-05).
 QUIZ = [
     {"q": "¿Con qué lee RG los datos del data lake?",
-     "opts": ["Redshift Spectrum", "Con sus propios nodos, sin Spectrum", "Amazon Athena", "Trabajos de AWS Glue"], "ok": 1,
+     "opts": ["Redshift Spectrum", "Con sus propios nodos, sin Spectrum", "Amazon Athena", "Con la Fuerza, como los Jedi"], "ok": 1,
      "why": "RA3 usa Spectrum, que cobra USD 5 por TB leído; RG lee el data lake con sus propios nodos y sin ese cobro."},
     {"q": "¿Qué tipo de consultas mejoró más al pasar de RA3 a RG?",
-     "opts": ["Las de cálculo pesado (ventanas, joins grandes)", "Ninguna, quedaron igual", "Las que leen y agregan muchos datos", "Solo las del data lake"], "ok": 2,
+     "opts": ["Las de cálculo pesado (ventanas, joins grandes)", "Las escritas en MAYÚSCULAS", "Las que leen y agregan muchos datos", "Solo las del data lake"], "ok": 2,
      "why": "2,28 veces en lectura contra 1,58 en cálculo; el promedio de las 20 consultas fue 1,90."},
     {"q": "Si tienes 4 nodos ra3.4xlarge, ¿cuántos rg.4xlarge recomienda AWS?",
-     "opts": ["3", "4", "2", "8"], "ok": 0,
+     "opts": ["3", "4", "42, obviamente", "8"], "ok": 0,
      "why": "Un ra3.4xlarge tiene 12 vCPU y un rg.4xlarge, 16: 4 × 12 = 3 × 16 = 48. Migrar uno a uno en ese tamaño deja un tercio de capacidad de más."},
     {"q": "En el simulacro de migración (elastic resize), ¿cuánto tiempo estuvo el clúster sin aceptar escrituras?",
-     "opts": ["Nada, siempre aceptó escrituras", "Unos 30 minutos", "Varias horas", "Entre 1,5 y 3 minutos"], "ok": 3,
+     "opts": ["Nada, siempre aceptó escrituras", "Unos 30 minutos", "Hasta que terminara esta charla", "Entre 1,5 y 3 minutos"], "ok": 3,
      "why": "Entre 1 min 35 s y 2 min 42 s; el resize completo tomó 2 min 48 s."},
 ]
 KAHOOT = [
     {"q": "¿Qué procesadores usan los nuevos nodos RG de Redshift?",
-     "opts": ["Intel Xeon", "AMD EPYC", "AWS Graviton", "Apple M"], "ok": 2,
+     "opts": ["Intel Xeon", "AMD EPYC", "AWS Graviton", "Un hámster muy motivado"], "ok": 2,
      "why": "RG usa Graviton, los procesadores Arm diseñados por AWS."},
     {"q": "¿Cuánto menos cuesta RG por vCPU frente a RA3?",
-     "opts": ["30 %", "10 %", "50 %", "Cuesta lo mismo"], "ok": 0,
+     "opts": ["30 %", "10 %", "Te pagan por usarlo", "Cuesta lo mismo"], "ok": 0,
      "why": "USD 1,086 entre 4 vCPU en ra3.xlplus contra 0,7602 entre 4 en rg.xlarge: 30 % menos."},
 ]
 
@@ -735,20 +735,23 @@ def fill(prs):
                                           "Repetirlo con 100 GB toma un día de trabajo y unas decenas de dólares"], size=25, bullets=True, space=18)
     notes(s, "Todo lo que vieron está en el repositorio: la infraestructura, el programa que lanza las pruebas, el runbook con cada paso y los errores que me encontré. Cámbienle el dataset por el suyo y repitan las mediciones.")
 
-    # 35 quiz (talk questions) and 36 kahoot (simpler ones), per the organizers' email
-    for slide, title, qs in ((S[34], "Quiz", QUIZ), (S[35], "Kahoot", KAHOOT)):
+    # 35-36 quiz (talk questions, 2 per slide) and 37 kahoot (simpler ones), per the organizers' email
+    GREEN = RGBColor(0x4C, 0xC3, 0x8A)
+    pages = ((S[34], "Quiz (1 de 2)", QUIZ[:2], 1), (S[35], "Quiz (2 de 2)", QUIZ[2:], 3), (S[36], "Kahoot", KAHOOT, 1))
+    for slide, title, qs, first in pages:
         set_title(slide, title)
-        n = len(qs)
-        w = (15.2 - 0.3 * (n - 1)) / n
         for i, q in enumerate(qs):
-            card(slide, X0 + i * (w + 0.3), Y0, w, 3.4, f"Pregunta {i + 1}", q["q"], size=21, title_size=24, title_color=ACCENT)
-        textbox(slide, X0, Y0 + 3.9, 15.2, 1.0, ["Las respuestas y los comentarios están en las notas."], size=20, color=MUTED)
-        notes(slide, f"{title}. " + " ".join(
-            f"Pregunta {i + 1}: {q['q']} " + "; ".join(f"{'abcd'[j]}) {o}" + (" (correcta)" if j == q['ok'] else "") for j, o in enumerate(q['opts']))
-            + f". Comentario: {q['why']}" for i, q in enumerate(qs)))
+            c = card(slide, X0 + i * 7.75, Y0, 7.45, 5.4, f"{first + i}. {q['q']}",
+                     [f"{'abcd'[j]}) {o}" for j, o in enumerate(q["opts"])], size=27, title_size=28)
+            for k, p in enumerate(c.text_frame.paragraphs):
+                p.alignment = PP_ALIGN.LEFT
+                p.space_after = Pt(18 if k == 0 else 12)
+            for r in c.text_frame.paragraphs[q["ok"] + 1].runs:  # paragraph 0 is the question
+                r.font.color.rgb, r.font.bold = GREEN, True
+        notes(slide, title + ". " + " ".join(f"{q['q']} Correcta: {'abcd'[q['ok']]}) {q['opts'][q['ok']]}. {q['why']}" for q in qs))
 
-    # 37 thanks
-    s = S[36]
+    # 38 thanks
+    s = S[37]
     set_title(s, "¡Gracias!", 72)
     textbox(s, X0, Y0 + 0.4, 8.6, 4.5, ["**Andrés Zeballos**", "Solutions Architect en phData",
                                          "LinkedIn: linkedin.com/in/andreszc",
