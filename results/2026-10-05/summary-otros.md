@@ -27,10 +27,26 @@ Spectrum.
 
 - **Parquet en RG:** `lq3` (≈18 s frente a 1.8 s en RA3) y `lqst` (≈18 s frente
   a 10 s) son más lentas en RG en las tres pasadas, así que no es caché fría.
-  En las otras cuatro consultas RG empata o gana. Pendiente: comparar `EXPLAIN`
-  en ambos clústeres (regla del spec: si los planes difieren, la diferencia es
-  el plan, no el chip). Sospecha sin verificar: estadísticas de tabla en las
-  tablas externas Parquet.
+  En las otras cuatro consultas RG empata o gana.
+  **Revisado el 2026-10-05 (19:50 UTC):**
+  - `EXPLAIN` de `lq3` y `lqst` da **el mismo plan** en ambos clústeres: mismo
+    orden de joins, mismas estrategias (`DS_BCAST_INNER`), mismas estimaciones
+    de filas. Por la regla del spec, la diferencia no es el plan.
+  - Las estadísticas están: las tablas `pq.*` tienen `numRows` correcto
+    (`store_sales` = 287.997.024). Descartada esa sospecha.
+  - Lo único distinto en el plan es el operador de lectura: RA3 lee S3 con
+    Spectrum (`S3 Query Scan`), RG con su motor integrado (`XN Seq Scan ...
+    format:PARQUET`).
+  - El formato en S3 es muy distinto: Parquet `store_sales` quedó en **4
+    archivos de ≈3,8 GB** (uno por slice del clúster que lo escribió con CETAS);
+    Iceberg `store_sales` en **28 archivos de ≈480 MB**.
+  - Hipótesis (sin probar): el motor integrado de RG reparte la lectura entre
+    pocos archivos enormes en solo 2 nodos, mientras Spectrum la reparte en su
+    propia flota. Prueba pendiente: reescribir el Parquet en archivos de
+    ≈500 MB y repetir `rr lake --variant parquet` en ambos.
+  - Mensaje para el slide, con lo verificado: con el mismo plan, el resultado
+    del lago en RG depende de cómo están escritos los archivos, no solo del
+    formato.
 - **Iceberg en RG:** la primera pasada es lenta (hasta 27 s, frente a ≈2 s
   después) y luego RG es mucho más rápido que RA3: RG cachea los datos del lago
   tras la primera lectura. El 1.87x excluye la pasada de calentamiento, igual
