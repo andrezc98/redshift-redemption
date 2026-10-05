@@ -40,8 +40,32 @@ BODY = "Arial"
 X0, Y0, W0, H0 = 1.0, 3.5, 15.9, 6.0  # inside the template's rounded panel (inches)
 
 # template slide per deck slide: 2 agenda, 4/6/8 title+content, 10/12/14 transition (dark variants)
-SRC = [4, 4, 2, 4, 10, 6, 6, 6, 12, 8, 8, 8, 14, 4, 4, 4, 4, 4, 4, 10, 6, 6, 6, 6, 6, 12, 8, 8, 14, 4, 4, 4, 6, 6, 6, 6]
+SRC = [4, 4, 2, 4, 10, 6, 6, 6, 12, 8, 8, 8, 14, 4, 4, 4, 4, 4, 4, 10, 6, 6, 6, 6, 6, 12, 8, 8, 14, 4, 4, 4, 6, 6, 6, 6, 6]
 
+
+# Quiz: at least 3 questions about the talk; Kahoot: 2 simpler ones (organizers' email, 2026-10-05).
+QUIZ = [
+    {"q": "¿Con qué lee RG los datos del data lake?",
+     "opts": ["Redshift Spectrum", "Con sus propios nodos, sin Spectrum", "Amazon Athena", "Trabajos de AWS Glue"], "ok": 1,
+     "why": "RA3 usa Spectrum, que cobra USD 5 por TB leído; RG lee el data lake con sus propios nodos y sin ese cobro."},
+    {"q": "¿Qué tipo de consultas mejoró más al pasar de RA3 a RG?",
+     "opts": ["Las de cálculo pesado (ventanas, joins grandes)", "Ninguna, quedaron igual", "Las que leen y agregan muchos datos", "Solo las del data lake"], "ok": 2,
+     "why": "2,28 veces en lectura contra 1,58 en cálculo; el promedio de las 20 consultas fue 1,90."},
+    {"q": "Si tienes 4 nodos ra3.4xlarge, ¿cuántos rg.4xlarge recomienda AWS?",
+     "opts": ["3", "4", "2", "8"], "ok": 0,
+     "why": "Un ra3.4xlarge tiene 12 vCPU y un rg.4xlarge, 16: 4 × 12 = 3 × 16 = 48. Migrar uno a uno en ese tamaño deja un tercio de capacidad de más."},
+    {"q": "En el simulacro de migración (elastic resize), ¿cuánto tiempo estuvo el clúster sin aceptar escrituras?",
+     "opts": ["Nada, siempre aceptó escrituras", "Unos 30 minutos", "Varias horas", "Entre 1,5 y 3 minutos"], "ok": 3,
+     "why": "Entre 1 min 35 s y 2 min 42 s; el resize completo tomó 2 min 48 s."},
+]
+KAHOOT = [
+    {"q": "¿Qué procesadores usan los nuevos nodos RG de Redshift?",
+     "opts": ["Intel Xeon", "AMD EPYC", "AWS Graviton", "Apple M"], "ok": 2,
+     "why": "RG usa Graviton, los procesadores Arm diseñados por AWS."},
+    {"q": "¿Cuánto menos cuesta RG por vCPU frente a RA3?",
+     "opts": ["30 %", "10 %", "50 %", "Cuesta lo mismo"], "ok": 0,
+     "why": "USD 1,086 entre 4 vCPU en ra3.xlplus contra 0,7602 entre 4 en rg.xlarge: 30 % menos."},
+]
 
 # ---------------------------------------------------------------- data
 def power_rows():
@@ -711,21 +735,20 @@ def fill(prs):
                                           "Repetirlo con 100 GB toma un día de trabajo y unas decenas de dólares"], size=25, bullets=True, space=18)
     notes(s, "Todo lo que vieron está en el repositorio: la infraestructura, el programa que lanza las pruebas, el runbook con cada paso y los errores que me encontré. Cámbienle el dataset por el suyo y repitan las mediciones.")
 
-    # 34 kahoot
-    s = S[34]
-    set_title(s, "Kahoot")
-    qs3 = ["¿Con qué lee RG los datos del data lake?",
-           "¿Qué tipo de consultas mejoró más al pasar de RA3 a RG?",
-           "Si tienes 4 nodos ra3.4xlarge, ¿cuántos rg.4xlarge recomienda AWS?"]
-    for i, q in enumerate(qs3):
-        card(s, X0 + i * 5.2, Y0, 4.9, 3.2, f"Pregunta {i + 1}", q, size=23, title_size=26, title_color=ACCENT)
-    textbox(s, X0, Y0 + 3.7, 15.2, 1.0, ["Las respuestas y los comentarios están en las notas."], size=20, color=MUTED)
-    notes(s, "Kahoot. Pregunta 1: ¿Con qué lee RG los datos del data lake? a) Redshift Spectrum; b) Con sus propios nodos, sin Spectrum (correcta); c) Amazon Athena; d) Trabajos de AWS Glue. Comentario: RA3 usa Spectrum, que cobra USD 5 por TB leído; RG lee el lago con sus nodos y sin ese cobro. "
-             "Pregunta 2: ¿Qué tipo de consultas mejoró más al pasar de RA3 a RG? a) Las de cálculo pesado, con ventanas y joins grandes; b) Las que leen y agregan muchos datos (correcta); c) Ninguna, quedaron igual; d) Solo las del data lake. Comentario: 2,28 veces en lectura contra 1,58 en cálculo; el promedio de las 20 consultas fue 1,90. "
-             "Pregunta 3: Si tienes 4 nodos ra3.4xlarge, ¿cuántos rg.4xlarge recomienda AWS? a) 4; b) 3 (correcta); c) 2; d) 8. Comentario: un ra3.4xlarge tiene 12 vCPU y un rg.4xlarge, 16; 4 por 12 y 3 por 16 dan 48. Migrar uno a uno en ese tamaño te deja con un tercio de capacidad de más.")
+    # 35 quiz (talk questions) and 36 kahoot (simpler ones), per the organizers' email
+    for slide, title, qs in ((S[34], "Quiz", QUIZ), (S[35], "Kahoot", KAHOOT)):
+        set_title(slide, title)
+        n = len(qs)
+        w = (15.2 - 0.3 * (n - 1)) / n
+        for i, q in enumerate(qs):
+            card(slide, X0 + i * (w + 0.3), Y0, w, 3.4, f"Pregunta {i + 1}", q["q"], size=21, title_size=24, title_color=ACCENT)
+        textbox(slide, X0, Y0 + 3.9, 15.2, 1.0, ["Las respuestas y los comentarios están en las notas."], size=20, color=MUTED)
+        notes(slide, f"{title}. " + " ".join(
+            f"Pregunta {i + 1}: {q['q']} " + "; ".join(f"{'abcd'[j]}) {o}" + (" (correcta)" if j == q['ok'] else "") for j, o in enumerate(q['opts']))
+            + f". Comentario: {q['why']}" for i, q in enumerate(qs)))
 
-    # 35 thanks
-    s = S[35]
+    # 37 thanks
+    s = S[36]
     set_title(s, "¡Gracias!", 72)
     textbox(s, X0, Y0 + 0.4, 8.6, 4.5, ["**Andrés Zeballos**", "Solutions Architect en phData",
                                          "LinkedIn: linkedin.com/in/andreszc",
@@ -733,6 +756,20 @@ def fill(prs):
     qr(s, ROOT / "slides/assets/qr-linkedin.png", 10.0, Y0 + 0.35, 3.0, "LinkedIn")
     qr(s, ROOT / "slides/assets/qr-github.png", 13.6, Y0 + 0.35, 3.0, "El laboratorio")
     notes(s, "Gracias. Respondo preguntas en el chat. Si alguien pregunta por Snowflake u otras plataformas: trabajo con varias y son buenas respuestas para contextos distintos; hoy vine a medir la decisión que ya tienen enfrente los equipos que usan AWS: RA3 o RG.")
+
+
+def write_preguntas():
+    """slides/preguntas.md: quiz and Kahoot questions to send with the deck."""
+    out = ["# Preguntas para el quiz y el Kahoot", "",
+           "Charla «Redshift Redemption: los nuevos nodos RG, ¿migrar o no migrar?». Generado por",
+           "`slides/build_deck.py`. La respuesta correcta está marcada con ✅.", ""]
+    for title, qs in (("Quiz (preguntas sobre la charla)", QUIZ), ("Kahoot (preguntas sencillas)", KAHOOT)):
+        out += [f"## {title}", ""]
+        for i, q in enumerate(qs, 1):
+            out.append(f"**{i}. {q['q']}**")
+            out += [f"- {'abcd'[j]}) {o}" + (" ✅" if j == q["ok"] else "") for j, o in enumerate(q["opts"])]
+            out += ["", f"Comentario: {q['why']}", ""]
+    (ROOT / "slides/preguntas.md").write_text("\n".join(out))
 
 
 def write_contenido(prs):
@@ -775,6 +812,7 @@ def main():
         fill(prs)
         prs.save(str(OUT))
         write_contenido(prs)
+        write_preguntas()
     print(f"wrote {OUT} ({len(SRC)} slides)")
 
 
