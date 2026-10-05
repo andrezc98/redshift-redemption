@@ -387,8 +387,10 @@ Colombia User Group, Episodio II, 2026-10-08. Cada número sale de `results/2026
 ## 34
 - Llévate el laboratorio
 - github.com/andrezc98/redshift-redemption
+- [imagen]
+- Escanea para ir al repo
 - La infraestructura, con Terraform y GitHub Actions (OIDC)
-- El programa que lanza las pruebas, en Python, y un runbook paso a paso
+- El programa de pruebas, en Python, y el runbook paso a paso
 - Todos los resultados, con su método, en la carpeta results/
 - Repetirlo con 100 GB toma un día de trabajo y unas decenas de dólares
 
@@ -408,8 +410,13 @@ Colombia User Group, Episodio II, 2026-10-08. Cada número sale de `results/2026
 
 ## 36
 - ¡Gracias!
-- Andrés Zeballos · Solutions Architect en phData
+- Andrés Zeballos
+- Solutions Architect en phData
+- LinkedIn: linkedin.com/in/andreszc
 - GitHub: andrezc98
-- El laboratorio: github.com/andrezc98/redshift-redemption
+- [imagen]
+- LinkedIn
+- [imagen]
+- El laboratorio
 
 **Notas:** Gracias. Respondo preguntas en el chat. Si alguien pregunta por Snowflake u otras plataformas: trabajo con varias y son buenas respuestas para contextos distintos; hoy vine a medir la decisión que ya tienen enfrente los equipos que usan AWS: RA3 o RG.

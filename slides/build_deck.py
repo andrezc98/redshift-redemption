@@ -256,6 +256,16 @@ def _heavy(run, size=None):
         el.set("typeface", HEAD)
 
 
+def qr(slide, path, x, y, size, caption):
+    pad = 0.18
+    bg = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x - pad), Inches(y - pad), Inches(size + 2 * pad), Inches(size + 2 * pad))
+    bg.adjustments[0] = 0.06
+    bg.fill.solid(), setattr(bg.fill.fore_color, "rgb", WHITE)
+    bg.line.fill.background()
+    slide.shapes.add_picture(str(path), Inches(x), Inches(y), Inches(size), Inches(size))
+    textbox(slide, x - 0.5, y + size + 0.3, size + 1.0, 0.5, [caption], size=18, color=SOFT, align=PP_ALIGN.CENTER)
+
+
 def set_title(slide, text, size=54):
     for sh in slide.shapes:
         if sh.has_text_frame and sh.text_frame.text.strip() in ("TÍTULO",):
@@ -693,9 +703,10 @@ def fill(prs):
     # 33 take the lab
     s = S[33]
     set_title(s, "Llévate el laboratorio")
-    textbox(s, X0, Y0 + 0.1, 15.2, 1.2, ["github.com/andrezc98/redshift-redemption"], size=44, color=ACCENT, bold=True)
-    textbox(s, X0, Y0 + 1.7, 15.2, 4.0, ["La infraestructura, con Terraform y GitHub Actions (OIDC)",
-                                          "El programa que lanza las pruebas, en Python, y un runbook paso a paso",
+    textbox(s, X0, Y0 + 0.1, 11.6, 1.2, ["github.com/andrezc98/redshift-redemption"], size=36, color=ACCENT, bold=True)
+    qr(s, ROOT / "slides/assets/qr-github.png", 13.2, Y0 + 0.35, 3.3, "Escanea para ir al repo")
+    textbox(s, X0, Y0 + 1.6, 11.6, 4.0, ["La infraestructura, con Terraform y GitHub Actions (OIDC)",
+                                          "El programa de pruebas, en Python, y el runbook paso a paso",
                                           "Todos los resultados, con su método, en la carpeta results/",
                                           "Repetirlo con 100 GB toma un día de trabajo y unas decenas de dólares"], size=25, bullets=True, space=18)
     notes(s, "Todo lo que vieron está en el repositorio: la infraestructura, el programa que lanza las pruebas, el runbook con cada paso y los errores que me encontré. Cámbienle el dataset por el suyo y repitan las mediciones.")
@@ -716,9 +727,11 @@ def fill(prs):
     # 35 thanks
     s = S[35]
     set_title(s, "¡Gracias!", 72)
-    textbox(s, X0, Y0 + 0.4, 15.2, 4.5, ["**Andrés Zeballos** · Solutions Architect en phData",
-                                          "GitHub: andrezc98",
-                                          "El laboratorio: github.com/andrezc98/redshift-redemption"], size=30, space=22)
+    textbox(s, X0, Y0 + 0.4, 8.6, 4.5, ["**Andrés Zeballos**", "Solutions Architect en phData",
+                                         "LinkedIn: linkedin.com/in/andreszc",
+                                         "GitHub: andrezc98"], size=28, space=20)
+    qr(s, ROOT / "slides/assets/qr-linkedin.png", 10.0, Y0 + 0.35, 3.0, "LinkedIn")
+    qr(s, ROOT / "slides/assets/qr-github.png", 13.6, Y0 + 0.35, 3.0, "El laboratorio")
     notes(s, "Gracias. Respondo preguntas en el chat. Si alguien pregunta por Snowflake u otras plataformas: trabajo con varias y son buenas respuestas para contextos distintos; hoy vine a medir la decisión que ya tienen enfrente los equipos que usan AWS: RA3 o RG.")
 
 
