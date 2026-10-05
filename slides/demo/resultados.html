@@ -13,6 +13,7 @@
   --rule: #dfe2e7;
   --ra3: #eb6834;
   --rg: #2a78d6;
+  --sls: #d55181;
   --scan: #1baf7a;
   --cpu: #4a3aa7;
   --good: #0ca30c;
@@ -25,13 +26,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #111317; --panel: #1a1a19; --ink: #f3f4f6; --ink-2: #c3c2b7; --ink-3: #8f9099;
-    --rule: #2c2e33; --ra3: #d95926; --rg: #3987e5; --scan: #199e70; --cpu: #9085e9;
+    --rule: #2c2e33; --ra3: #d95926; --rg: #3987e5; --sls: #d55181; --scan: #199e70; --cpu: #9085e9;
     --bad-soft: rgba(208, 59, 59, .22); color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #111317; --panel: #1a1a19; --ink: #f3f4f6; --ink-2: #c3c2b7; --ink-3: #8f9099;
-  --rule: #2c2e33; --ra3: #d95926; --rg: #3987e5; --scan: #199e70; --cpu: #9085e9;
+  --rule: #2c2e33; --ra3: #d95926; --rg: #3987e5; --sls: #d55181; --scan: #199e70; --cpu: #9085e9;
   --bad-soft: rgba(208, 59, 59, .22); color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -45,10 +46,10 @@ h1 { font: 800 clamp(34px, 5vw, 58px)/1 var(--f-display); font-stretch: 112%; le
 h1 .ra3 { color: var(--ra3); } h1 .rg { color: var(--rg); }
 .lede { margin: 0; color: var(--ink-2); font-size: 18px; }
 
-.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
 .tile { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 18px; display: grid; gap: 4px; align-content: start; }
 .tile .k { font: 600 12px/1 var(--f-data); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
-.tile .v { font: 800 clamp(34px, 4.2vw, 50px)/1.05 var(--f-display); font-stretch: 105%; font-variant-numeric: tabular-nums; }
+.tile .v { font: 800 clamp(30px, 3.3vw, 42px)/1.05 var(--f-display); font-stretch: 105%; font-variant-numeric: tabular-nums; }
 .tile .v small { font-size: .5em; font-weight: 600; color: var(--ink-2); }
 .tile .s { color: var(--ink-2); font-size: 14px; }
 
@@ -92,13 +93,21 @@ h2 .sub { font: 400 15px var(--f-body); color: var(--ink-2); margin-left: 8px; f
 .grp { display: grid; gap: 8px; align-content: start; min-width: 0; }
 .grp h3 { font: 700 16px/1.2 var(--f-display); margin: 0; }
 .pair { display: grid; gap: 6px; }
-.prow { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 8px; align-items: center; font-size: 13px; }
+.prow { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; align-items: center; font-size: 13px; }
 .prow .who { font: 600 12px var(--f-data); color: var(--ink-3); }
 .prow .track { height: 26px; }
 .prow .bar { top: 0; height: 26px; }
 .prow .bar-val { line-height: 26px; }
 .verdict { font: 700 15px var(--f-data); }
 .verdict.win { color: var(--ink); } .verdict.lose { color: var(--bad); }
+.verdicts { display: grid; gap: 2px; }
+.verdict small { font: 400 13px var(--f-body); color: var(--ink-2); }
+.nm { font: 400 13px/26px var(--f-data); color: var(--ink-3); }
+.tri { grid-template-columns: repeat(3, minmax(0, 1fr)); padding-bottom: 14px; border-bottom: 1px solid var(--rule); }
+.tri .big { font: 800 40px/1 var(--f-display); font-stretch: 105%; font-variant-numeric: tabular-nums; }
+.sls-note { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+.sls-note p { margin: 0; color: var(--ink-2); font-size: 15px; max-width: 65ch; }
+.sls-note b { color: var(--ink); font-family: var(--f-data); font-weight: 600; }
 .note { font-size: 14px; color: var(--ink-2); margin: 0; border-top: 1px solid var(--rule); padding-top: 8px; }
 
 .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
@@ -119,6 +128,7 @@ footer { font: 13px var(--f-data); color: var(--ink-3); text-align: center; }
 
 @media (max-width: 900px) {
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tri, .sls-note { grid-template-columns: minmax(0, 1fr); }
   .groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .two { grid-template-columns: minmax(0, 1fr); }
 }
@@ -136,7 +146,7 @@ footer { font: 13px var(--f-data); color: var(--ink-3); text-align: center; }
   <header>
     <div class="eyebrow">Redshift Redemption · resultados del laboratorio</div>
     <h1><span class="ra3">RA3</span> frente a <span class="rg">RG</span>, medido</h1>
-    <p class="lede">TPC-DS de 100 GB, 2 nodos por clúster (ra3.xlplus y rg.xlarge), mismo snapshot y misma versión, corridas del 2026-10-05.</p>
+    <p class="lede">TPC-DS de 100 GB, 2 nodos por clúster (ra3.xlplus y rg.xlarge) y Serverless fijo en 4 RPU; mismo snapshot y misma versión, pruebas del <span style="white-space:nowrap">2026-10-05</span>.</p>
   </header>
 
   <div class="tiles" id="tiles"></div>
@@ -147,8 +157,8 @@ footer { font: 13px var(--f-data); color: var(--ink-3); text-align: center; }
       <div class="controls">
         <div class="seg" role="group" aria-label="Filtrar por clase">
           <button type="button" id="f-all" data-f="all" aria-pressed="true">Todas</button>
-          <button type="button" id="f-scan" data-f="scan" aria-pressed="false">Scan</button>
-          <button type="button" id="f-cpu" data-f="cpu" aria-pressed="false">CPU</button>
+          <button type="button" id="f-scan" data-f="scan" aria-pressed="false">Lectura</button>
+          <button type="button" id="f-cpu" data-f="cpu" aria-pressed="false">Cálculo</button>
         </div>
         <div class="seg" role="group" aria-label="Ordenar">
           <button type="button" id="s-x" data-s="x" aria-pressed="true">Por aceleración</button>
@@ -156,6 +166,7 @@ footer { font: 13px var(--f-data); color: var(--ink-3); text-align: center; }
         </div>
       </div>
     </div>
+    <div class="groups tri" id="power-tri"></div>
     <div class="legend" id="power-legend"></div>
     <div class="plot"><div class="plot-inner" id="power-plot"></div></div>
   </section>
@@ -163,7 +174,7 @@ footer { font: 13px var(--f-data); color: var(--ink-3); text-align: center; }
   <section aria-labelledby="h-lake">
     <div class="sec-head">
       <h2 id="h-lake">Lago<span class="sub">barras: tiempo total de 6 consultas en segundos (menos es mejor) · cifra: media geométrica de la aceleración</span></h2>
-      <div class="legend"><span><i style="background:var(--ra3)"></i>RA3</span><span><i style="background:var(--rg)"></i>RG</span></div>
+      <div class="legend"><span><i style="background:var(--ra3)"></i>RA3</span><span><i style="background:var(--rg)"></i>RG</span><span><i style="background:var(--sls)"></i>Serverless 4 RPU</span></div>
     </div>
     <div class="groups" id="lake"></div>
   </section>
@@ -179,6 +190,11 @@ footer { font: 13px var(--f-data); color: var(--ink-3); text-align: center; }
     </section>
   </div>
 
+  <section aria-labelledby="h-sls">
+    <div class="sec-head"><h2 id="h-sls">Serverless 4 RPU<span class="sub">cómo leer la tercera columna</span></h2></div>
+    <div class="sls-note" id="sls-note"></div>
+  </section>
+
   <section aria-labelledby="h-drill">
     <div class="sec-head">
       <h2 id="h-drill">Migración<span class="sub">elastic resize de 2x ra3.xlplus a 2x rg.xlarge, sonda de escritura cada 30 s</span></h2>
@@ -192,11 +208,12 @@ footer { font: 13px var(--f-data); color: var(--ink-3); text-align: center; }
 </div>
 <div class="tip" id="tip" hidden></div>
 
-<script type="application/json" id="data">{"prices":{"ra3.xlplus":1.086,"rg.xlarge":0.7602,"nodes":2},"power":{"geomean":1.8978137679931342,"by_class":{"scan":2.2844648275920667,"cpu":1.576604312083306},"ra3_total_s":148.28596050000002,"rg_total_s":96.6676995,"ra3_usd":0.08946586283500002,"rg_usd":0.040825991755499995,"queries":[{"q":"query14","cls":"cpu","ra3":26.1578755,"rg":13.149491999999999,"x":1.9892689010343518},{"q":"query19","cls":"scan","ra3":0.3766695,"rg":0.173883,"x":2.166223840168389},{"q":"query23","cls":"cpu","ra3":35.081597,"rg":31.7220935,"x":1.1059042178284988},{"q":"query28","cls":"scan","ra3":4.643617,"rg":3.459521,"x":1.342271661308025},{"q":"query3","cls":"scan","ra3":0.8159765,"rg":0.491104,"x":1.6615146689906823},{"q":"query42","cls":"scan","ra3":0.1986365,"rg":0.0854245,"x":2.325287241950494},{"q":"query43","cls":"scan","ra3":1.2633295,"rg":0.42368649999999997,"x":2.9817553780920565},{"q":"query47","cls":"cpu","ra3":9.377019,"rg":6.9740585,"x":1.344556974966585},{"q":"query48","cls":"scan","ra3":1.5243030000000002,"rg":0.426323,"x":3.575465081639978},{"q":"query52","cls":"scan","ra3":0.2020555,"rg":0.0847725,"x":2.383502904833525},{"q":"query55","cls":"scan","ra3":0.185664,"rg":0.080386,"x":2.309655910233125},{"q":"query57","cls":"cpu","ra3":5.2266895,"rg":4.8536275,"x":1.0768625115957087},{"q":"query64","cls":"cpu","ra3":5.7131989999999995,"rg":3.2070755,"x":1.7814357660117448},{"q":"query67","cls":"cpu","ra3":5.2347455,"rg":2.9707985,"x":1.7620668315269448},{"q":"query7","cls":"scan","ra3":0.7877685,"rg":0.3541765,"x":2.2242257744373215},{"q":"query72","cls":"cpu","ra3":35.069488500000006,"rg":17.5307815,"x":2.0004520905129075},{"q":"query78","cls":"cpu","ra3":13.278716,"rg":9.276706,"x":1.431404207484855},{"q":"query89","cls":"cpu","ra3":0.885636,"rg":0.422613,"x":2.09561939646911},{"q":"query96","cls":"scan","ra3":1.77406,"rg":0.672039,"x":2.639817034428061},{"q":"query98","cls":"cpu","ra3":0.48891450000000003,"rg":0.3091375,"x":1.58154381141078}]},"lake":{"local":{"ra3_total_s":7.588757,"rg_total_s":4.453867499999999,"geomean":1.7730940760947784,"n":6,"queries":[{"q":"lq3","ra3":0.678674,"rg":0.40858249999999996},{"q":"lq42","ra3":0.1603095,"rg":0.090444},{"q":"lq52","ra3":0.173029,"rg":0.088336},{"q":"lq55","ra3":0.1563495,"rg":0.0829245},{"q":"lqcu","ra3":2.9307325000000004,"rg":1.8785479999999999},{"q":"lqst","ra3":3.4896624999999997,"rg":1.9050325}]},"iceberg":{"ra3_total_s":29.4428465,"rg_total_s":14.5768445,"geomean":1.8704050674625403,"n":6,"queries":[{"q":"lq3","ra3":1.6926899999999998,"rg":2.5409165},{"q":"lq42","ra3":3.34598,"rg":1.362477},{"q":"lq52","ra3":3.0020345,"rg":1.5652460000000001},{"q":"lq55","ra3":3.3644555,"rg":1.321555},{"q":"lqcu","ra3":8.443077,"rg":3.68183},{"q":"lqst","ra3":9.5946095,"rg":4.10482}]},"parquet_big":{"ra3_total_s":31.6884205,"rg_total_s":50.6137745,"geomean":0.8181028595870057,"n":6,"queries":[{"q":"lq3","ra3":1.7957315,"rg":17.9697715},{"q":"lq42","ra3":3.9016475,"rg":2.745562},{"q":"lq52","ra3":3.873271,"rg":2.237167},{"q":"lq55","ra3":4.602302,"rg":2.391771},{"q":"lqcu","ra3":7.1545819999999996,"rg":6.1029605},{"q":"lqst","ra3":10.3608865,"rg":19.1665425}]},"parquet_small":{"ra3_total_s":46.505771,"rg_total_s":36.298662,"geomean":1.7605697097698927,"n":6,"queries":[{"q":"lq3","ra3":7.1917355,"rg":12.7117005},{"q":"lq42","ra3":8.1486695,"rg":2.323663},{"q":"lq52","ra3":7.60694,"rg":2.1075135},{"q":"lq55","ra3":7.1456055,"rg":2.0024405},{"q":"lqcu","ra3":8.103604,"rg":4.6044225},{"q":"lqst","ra3":8.3092165,"rg":12.548922000000001}]}},"elt":{"ra3_total_s":47.874773000000005,"rg_total_s":31.576126,"geomean":1.5556688269424161,"n":2,"queries":[{"q":"ecopy","ra3":40.130273,"rg":26.780941},{"q":"ectas","ra3":7.7445,"rg":4.795185}]},"concurrency":{"ra3":{"queries_per_hour":680.0,"queue_p50_s":0.0,"queue_p95_s":0.0,"failed":0},"rg":{"queries_per_hour":1224.0,"queue_p50_s":0.0,"queue_p95_s":0.0,"failed":0},"ratio":1.8},"drill":[{"ts":"2026-10-05T19:05:53Z","status":"IN_PROGRESS","probe":"FINISHED"},{"ts":"2026-10-05T19:06:25Z","status":"IN_PROGRESS","probe":"FAILED"},{"ts":"2026-10-05T19:06:57Z","status":"IN_PROGRESS","probe":"FAILED"},{"ts":"2026-10-05T19:07:29Z","status":"IN_PROGRESS","probe":"FAILED"},{"ts":"2026-10-05T19:08:00Z","status":"IN_PROGRESS","probe":"FAILED"},{"ts":"2026-10-05T19:08:35Z","status":"SUCCEEDED","probe":"FINISHED"}],"drill_resize_start":"2026-10-05T19:05:47Z","source":"results/2026-10-05/ via runner/rr/stats.py"}</script>
+<script type="application/json" id="data">{"prices":{"ra3.xlplus":1.086,"rg.xlarge":0.7602,"nodes":2},"power":{"geomean":1.8978137679931342,"by_class":{"scan":2.2844648275920667,"cpu":1.576604312083306},"ra3_total_s":148.28596050000002,"rg_total_s":96.6676995,"ra3_usd":0.08946586283500002,"rg_usd":0.040825991755499995,"queries":[{"q":"query14","cls":"cpu","ra3":26.1578755,"rg":13.149491999999999,"x":1.9892689010343518,"sls":19.951814},{"q":"query19","cls":"scan","ra3":0.3766695,"rg":0.173883,"x":2.166223840168389,"sls":0.8052635},{"q":"query23","cls":"cpu","ra3":35.081597,"rg":31.7220935,"x":1.1059042178284988,"sls":53.317234},{"q":"query28","cls":"scan","ra3":4.643617,"rg":3.459521,"x":1.342271661308025,"sls":6.664142999999999},{"q":"query3","cls":"scan","ra3":0.8159765,"rg":0.491104,"x":1.6615146689906823,"sls":3.324202},{"q":"query42","cls":"scan","ra3":0.1986365,"rg":0.0854245,"x":2.325287241950494,"sls":0.4467205},{"q":"query43","cls":"scan","ra3":1.2633295,"rg":0.42368649999999997,"x":2.9817553780920565,"sls":1.481386},{"q":"query47","cls":"cpu","ra3":9.377019,"rg":6.9740585,"x":1.344556974966585,"sls":11.855766},{"q":"query48","cls":"scan","ra3":1.5243030000000002,"rg":0.426323,"x":3.575465081639978,"sls":1.7967485},{"q":"query52","cls":"scan","ra3":0.2020555,"rg":0.0847725,"x":2.383502904833525,"sls":0.43548200000000004},{"q":"query55","cls":"scan","ra3":0.185664,"rg":0.080386,"x":2.309655910233125,"sls":0.263126},{"q":"query57","cls":"cpu","ra3":5.2266895,"rg":4.8536275,"x":1.0768625115957087,"sls":7.687206},{"q":"query64","cls":"cpu","ra3":5.7131989999999995,"rg":3.2070755,"x":1.7814357660117448,"sls":11.7962175},{"q":"query67","cls":"cpu","ra3":5.2347455,"rg":2.9707985,"x":1.7620668315269448,"sls":4.2080614999999995},{"q":"query7","cls":"scan","ra3":0.7877685,"rg":0.3541765,"x":2.2242257744373215,"sls":1.88149},{"q":"query72","cls":"cpu","ra3":35.069488500000006,"rg":17.5307815,"x":2.0004520905129075,"sls":56.6508015},{"q":"query78","cls":"cpu","ra3":13.278716,"rg":9.276706,"x":1.431404207484855,"sls":56.4041795},{"q":"query89","cls":"cpu","ra3":0.885636,"rg":0.422613,"x":2.09561939646911,"sls":1.2673645},{"q":"query96","cls":"scan","ra3":1.77406,"rg":0.672039,"x":2.639817034428061,"sls":3.231379},{"q":"query98","cls":"cpu","ra3":0.48891450000000003,"rg":0.3091375,"x":1.58154381141078,"sls":0.4605955}],"sls_total_s":243.9291805,"ra3_p50_s":1.6491815,"rg_p50_s":0.5815715,"sls_p50_s":3.2777905,"rg_vs_sls_geomean":3.0894913297143938,"sls_vs_ra3_by_class":{"scan":0.5354416947913117,"cpu":0.7047272060420381},"sls_usd":0.10163715854166666},"lake":{"local":{"ra3_total_s":7.588757,"rg_total_s":4.453867499999999,"geomean":1.7730940760947784,"n":6,"queries":[{"q":"lq3","ra3":0.678674,"rg":0.40858249999999996,"sls":3.7078445},{"q":"lq42","ra3":0.1603095,"rg":0.090444,"sls":0.130939},{"q":"lq52","ra3":0.173029,"rg":0.088336,"sls":0.130012},{"q":"lq55","ra3":0.1563495,"rg":0.0829245,"sls":0.1481335},{"q":"lqcu","ra3":2.9307325000000004,"rg":1.8785479999999999,"sls":2.207619},{"q":"lqst","ra3":3.4896624999999997,"rg":1.9050325,"sls":5.2094045}],"sls_total_s":11.5339525,"rg_vs_sls_geomean":2.1922451097558744},"iceberg":{"ra3_total_s":29.4428465,"rg_total_s":14.5768445,"geomean":1.8704050674625403,"n":6,"queries":[{"q":"lq3","ra3":1.6926899999999998,"rg":2.5409165,"sls":2.5469169999999997},{"q":"lq42","ra3":3.34598,"rg":1.362477,"sls":3.0853505},{"q":"lq52","ra3":3.0020345,"rg":1.5652460000000001,"sls":2.837499},{"q":"lq55","ra3":3.3644555,"rg":1.321555,"sls":3.1904125},{"q":"lqcu","ra3":8.443077,"rg":3.68183,"sls":8.25625},{"q":"lqst","ra3":9.5946095,"rg":4.10482,"sls":14.820046999999999}],"sls_total_s":34.736475999999996,"rg_vs_sls_geomean":2.077613860240784},"parquet_big":{"ra3_total_s":31.6884205,"rg_total_s":50.6137745,"geomean":0.8181028595870057,"n":6,"queries":[{"q":"lq3","ra3":1.7957315,"rg":17.9697715},{"q":"lq42","ra3":3.9016475,"rg":2.745562},{"q":"lq52","ra3":3.873271,"rg":2.237167},{"q":"lq55","ra3":4.602302,"rg":2.391771},{"q":"lqcu","ra3":7.1545819999999996,"rg":6.1029605},{"q":"lqst","ra3":10.3608865,"rg":19.1665425}],"sls_total_s":null},"parquet_small":{"ra3_total_s":46.505771,"rg_total_s":36.298662,"geomean":1.7605697097698927,"n":6,"queries":[{"q":"lq3","ra3":7.1917355,"rg":12.7117005,"sls":2.5928430000000002},{"q":"lq42","ra3":8.1486695,"rg":2.323663,"sls":3.4289125},{"q":"lq52","ra3":7.60694,"rg":2.1075135,"sls":3.2498275000000003},{"q":"lq55","ra3":7.1456055,"rg":2.0024405,"sls":3.0781425000000002},{"q":"lqcu","ra3":8.103604,"rg":4.6044225,"sls":6.7783035},{"q":"lqst","ra3":8.3092165,"rg":12.548922000000001,"sls":14.1827385}],"sls_total_s":33.3107675,"rg_vs_sls_geomean":1.0289929486879164}},"elt":{"ra3_total_s":47.874773000000005,"rg_total_s":31.576126,"geomean":1.5556688269424161,"n":2,"queries":[{"q":"ecopy","ra3":40.130273,"rg":26.780941,"sls":47.955328},{"q":"ectas","ra3":7.7445,"rg":4.795185,"sls":14.19078}],"sls_total_s":62.146108,"rg_vs_sls_geomean":2.3020034311286866},"concurrency":{"ra3":{"queries_per_hour":680.0,"queue_p50_s":0.0,"queue_p95_s":0.0,"failed":0},"rg":{"queries_per_hour":1224.0,"queue_p50_s":0.0,"queue_p95_s":0.0,"failed":0},"ratio":1.8,"sls":{"queries_per_hour":720.0,"queue_p50_s":0.0,"queue_p95_s":0.0,"failed":0},"rg_vs_sls":1.7},"drill":[{"ts":"2026-10-05T19:05:53Z","status":"IN_PROGRESS","probe":"FINISHED"},{"ts":"2026-10-05T19:06:25Z","status":"IN_PROGRESS","probe":"FAILED"},{"ts":"2026-10-05T19:06:57Z","status":"IN_PROGRESS","probe":"FAILED"},{"ts":"2026-10-05T19:07:29Z","status":"IN_PROGRESS","probe":"FAILED"},{"ts":"2026-10-05T19:08:00Z","status":"IN_PROGRESS","probe":"FAILED"},{"ts":"2026-10-05T19:08:35Z","status":"SUCCEEDED","probe":"FINISHED"}],"drill_resize_start":"2026-10-05T19:05:47Z","source":"results/2026-10-05/ via runner/rr/stats.py","serverless":{"rpu":4,"bill_usd_all":1.48,"bill_rpu_s_all":14164,"power_rpu_s":3840,"power_usd_3":0.4,"power_usd_per_run":0.133,"default_base_rpu":128,"source":"results/2026-10-05/summary-serverless.md (SYS_SERVERLESS_USAGE.charged_seconds)"}}</script>
 <script>
 const D = JSON.parse(document.getElementById('data').textContent);
 const $ = id => document.getElementById(id);
-const f2 = x => x.toFixed(2), f1 = x => x.toFixed(1);
+const nf = d => { const f = new Intl.NumberFormat('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d }); return x => f.format(x); };
+const f2 = nf(2), f1 = nf(1), f3 = nf(3);
 const xfmt = x => f2(x) + 'x';
 const sec = s => { s = Math.round(s); return Math.floor(s / 60) + ' min ' + String(s % 60).padStart(2, '0') + ' s'; };
 const t = iso => new Date(iso).getTime() / 1000;
@@ -226,19 +243,20 @@ const P = D.power, C = D.concurrency, dr = D.drill;
 const resizeEnd = dr.find(r => r.status === 'SUCCEEDED').ts;
 const migS = t(resizeEnd) - t(D.drill_resize_start);
 $('tiles').innerHTML = [
-  ['Potencia', xfmt(P.geomean), 'media geométrica, 20 consultas'],
+  ['Potencia', xfmt(P.geomean), 'RG frente a RA3, media geométrica de 20 consultas'],
   ['Concurrencia', f1(C.ratio) + 'x', `<span class="num">${Math.round(C.ra3.queries_per_hour)}</span> → <span class="num">${Math.round(C.rg.queries_per_hour)}</span> consultas/hora`],
-  ['Costo por corrida', `<small>USD</small> ${P.ra3_usd.toFixed(3)} <small>→</small> ${P.rg_usd.toFixed(3)}`, 'corrida de potencia, tarifa on-demand'],
+  ['Costo por ejecución', `<small>USD</small> ${f3(P.ra3_usd)} <small>→</small> ${f3(P.rg_usd)}`, `potencia, tarifa on-demand · Serverless <span class="num">${f3(P.sls_usd)}</span>`],
   ['Migración', sec(migS).replace(' min ', '<small> min </small>').replace(' s', '<small> s</small>'), 'elastic resize completo'],
+  ['Serverless 4 RPU', xfmt(P.rg_vs_sls_geomean), `RG más rápido · <span class="num">${f1(P.sls_total_s)} s</span> en las 20 consultas`],
 ].map(([k, v, s]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
 
 // power chart
 const XMAX = Math.ceil(Math.max(...P.queries.map(q => q.x)));
 const pct = x => (x / XMAX * 100) + '%';
-const CLS = { scan: 'Scan', cpu: 'CPU' };
+const CLS = { scan: 'Lectura', cpu: 'Cálculo' };
 $('power-legend').innerHTML =
-  `<span><i style="background:var(--scan)"></i>Scan (lectura de tablas): ${xfmt(P.by_class.scan)}</span>` +
-  `<span><i style="background:var(--cpu)"></i>CPU (joins, ventanas): ${xfmt(P.by_class.cpu)}</span>` +
+  `<span><i style="background:var(--scan)"></i>Lectura (escaneo de tablas): ${xfmt(P.by_class.scan)}</span>` +
+  `<span><i style="background:var(--cpu)"></i>Cálculo (joins, ventanas): ${xfmt(P.by_class.cpu)}</span>` +
   `<span>Línea en 1x: mismo tiempo en ambos</span>`;
 let filt = 'all', sortBy = 'x';
 function drawPower() {
@@ -255,7 +273,7 @@ function drawPower() {
   $('power-plot').innerHTML = html;
   $('power-plot').querySelectorAll('.brow').forEach(el => {
     const q = P.queries.find(r => r.q === el.dataset.q);
-    hover(el, `${q.q} · ${CLS[q.cls]}<br>RA3 ${f2(q.ra3)} s<br>RG&nbsp; ${f2(q.rg)} s<br>RG ${xfmt(q.x)} más rápido`);
+    hover(el, `${q.q} · ${CLS[q.cls]}<br>RA3 ${f2(q.ra3)} s<br>RG&nbsp; ${f2(q.rg)} s<br>Serverless ${f2(q.sls)} s<br>RG ${xfmt(q.x)} más rápido que RA3`);
   });
 }
 document.querySelectorAll('[data-f]').forEach(b => b.addEventListener('click', () => {
@@ -266,41 +284,68 @@ document.querySelectorAll('[data-s]').forEach(b => b.addEventListener('click', (
 }));
 drawPower();
 
-// paired bars
-function pairHTML(a, b, max, unit, fmt, betterHigher, gm) {
-  const ratio = gm ?? (betterHigher ? b / a : a / b);  // gm: stats.geomean of per-query speedups
-  const row = (who, v, c) => `<div class="prow"><span class="who">${who}</span><div class="track">
-    <div class="bar" style="width:${v / max * 100}%;background:var(--${c})"></div>
-    <div class="bar-val" style="left:${v / max * 100}%">${fmt(v)}${unit}</div></div></div>`;
-  const verdict = ratio >= 1 ? `<div class="verdict win">RG ${xfmt(ratio)}</div>` : `<div class="verdict lose">RG ${xfmt(ratio)} · más lento</div>`;
-  return `<div class="pair">${row('RA3', a, 'ra3')}${row('RG', b, 'rg')}</div>${verdict}`;
+// grouped bars: RA3 · RG · Serverless (fixed order, never re-sorted)
+const WHO = [['ra3', 'RA3'], ['rg', 'RG'], ['sls', 'Serverless']];
+function barsHTML(vals, max, unit, fmt) {
+  return '<div class="pair">' + WHO.map(([c, who]) => {
+    const v = vals[c];
+    const body = v == null ? '<span class="nm">no medido</span>' :
+      `<div class="bar" style="width:${v / max * 100}%;background:var(--${c})"></div><div class="bar-val" style="left:${v / max * 100}%">${fmt(v)}${unit}</div>`;
+    return `<div class="prow"><span class="who">${who}</span><div class="track">${body}</div></div>`;
+  }).join('') + '</div>';
 }
+// ratios: stats.geomean of per-query speedups where given, else the plain quotient
+function verdictsHTML(vsRa3, vsSls) {
+  const one = (r, who) => r == null ? '' : r >= 1
+    ? `<div class="verdict win">RG ${xfmt(r)} <small>frente a ${who}</small></div>`
+    : `<div class="verdict lose">RG ${xfmt(r)} <small>frente a ${who} · más lento</small></div>`;
+  return `<div class="verdicts">${one(vsRa3, 'RA3')}${one(vsSls, 'Serverless')}</div>`;
+}
+
+// power: three-way summary above the RG-vs-RA3 chart
+const triMax = P.sls_total_s * 1.3, medMax = P.sls_p50_s * 1.3;
+$('power-tri').innerHTML =
+  `<div class="grp"><h3>Total de las 20 consultas <small class="nm">(s, menos es mejor)</small></h3>${barsHTML({ ra3: P.ra3_total_s, rg: P.rg_total_s, sls: P.sls_total_s }, triMax, ' s', f1)}</div>` +
+  `<div class="grp"><h3>Mediana por consulta <small class="nm">(s, menos es mejor)</small></h3>${barsHTML({ ra3: P.ra3_p50_s, rg: P.rg_p50_s, sls: P.sls_p50_s }, medMax, ' s', f2)}</div>` +
+  `<div class="grp"><h3>RG frente a Serverless</h3><div class="big">${xfmt(P.rg_vs_sls_geomean)}</div>
+    <p class="note">Media geométrica por consulta. Serverless frente a RA3: ${xfmt(P.sls_vs_ra3_by_class.scan)} en lectura y ${xfmt(P.sls_vs_ra3_by_class.cpu)} en cálculo.</p></div>`;
+
 const L = D.lake;
-const lakeMax = Math.max(...Object.values(L).flatMap(v => [v.ra3_total_s, v.rg_total_s])) * 1.45;
+const lakeMax = Math.max(...Object.values(L).flatMap(v => [v.ra3_total_s, v.rg_total_s, v.sls_total_s ?? 0])) * 1.45;
 const lakeGroups = [
   ['local', 'Tablas locales', 'Línea base: los mismos datos dentro del clúster.'],
-  ['iceberg', 'Iceberg en S3', 'Con caché caliente. La primera pasada de RG es lenta (hasta 27 s); después RG cachea los datos del lago. Se excluye la pasada de calentamiento, como en todos los escenarios.'],
-  ['parquet_big', 'Parquet, archivos grandes', 'Mismo plan en ambos clústeres. Cambia el lector: Spectrum en RA3, motor integrado en RG. store_sales quedó en 4 archivos de ≈3,8 GB.'],
-  ['parquet_small', 'Parquet, archivos de 0,5 GB', 'Mismos datos reescritos en 31 archivos de ≈0,5 GB. RG mejora y RA3 empeora. Es una sola repetición: vale la dirección, no el número.'],
+  ['iceberg', 'Iceberg en S3', 'Con caché caliente. La primera ejecución de RG es lenta (hasta 27 s); después RG cachea los datos del lago. Se excluye la repetición de calentamiento, como en todos los escenarios.'],
+  ['parquet_big', 'Parquet, archivos grandes', 'Mismo plan en ambos clústeres. Cambia quién lee S3: Spectrum en RA3; en RG, sus propios nodos. store_sales quedó en 4 archivos de ≈3,8 GB. Serverless no se midió con este formato.'],
+  ['parquet_small', 'Parquet, archivos de 0,5 GB', 'Mismos datos reescritos en 31 archivos de ≈0,5 GB. RG mejora y RA3 empeora; Serverless se midió con este formato. Es una sola repetición: vale la dirección, no el número.'],
 ];
-$('lake').innerHTML = lakeGroups.map(([k, h, note]) =>
-  `<div class="grp" data-k="${k}"><h3>${h}</h3>${pairHTML(L[k].ra3_total_s, L[k].rg_total_s, lakeMax, ' s', f1, false, L[k].geomean)}<p class="note">${note}</p></div>`).join('');
+$('lake').innerHTML = lakeGroups.map(([k, h, note]) => {
+  const v = L[k];
+  return `<div class="grp" data-k="${k}"><h3>${h}</h3>${barsHTML({ ra3: v.ra3_total_s, rg: v.rg_total_s, sls: v.sls_total_s }, lakeMax, ' s', f1)}${verdictsHTML(v.geomean, v.rg_vs_sls_geomean)}<p class="note">${note}</p></div>`;
+}).join('');
 $('lake').querySelectorAll('.grp').forEach(el => {
   const v = L[el.dataset.k];
-  hover(el.querySelector('.pair'), v.queries.map(q => `${q.q.padEnd(5, ' ')} RA3 ${f2(q.ra3).padStart(6, ' ')} s · RG ${f2(q.rg).padStart(6, ' ')} s`).join('<br>'));
+  hover(el.querySelector('.pair'), v.queries.map(q => `${q.q.padEnd(5, ' ')} RA3 ${f2(q.ra3).padStart(6, ' ')} s · RG ${f2(q.rg).padStart(6, ' ')} s` +
+    (q.sls == null ? '' : ` · Serverless ${f2(q.sls).padStart(6, ' ')} s`)).join('<br>'));
 });
 
 // concurrency
-const qph = C.rg.queries_per_hour * 1.3;
-$('conc').innerHTML = `<div class="grp"><h3>Consultas por hora (más es mejor)</h3>${pairHTML(C.ra3.queries_per_hour, C.rg.queries_per_hour, qph, '', x => String(Math.round(x)), true)}
-  <p class="note">Sin cola en ambos (espera p50 y p95: ${f1(C.ra3.queue_p95_s)} s en RA3, ${f1(C.rg.queue_p95_s)} s en RG) y ${C.ra3.failed + C.rg.failed} fallas.</p></div>`;
+const qph = Math.max(C.ra3.queries_per_hour, C.rg.queries_per_hour, C.sls.queries_per_hour) * 1.3;
+$('conc').innerHTML = `<div class="grp"><h3>Consultas por hora (más es mejor)</h3>${barsHTML({ ra3: C.ra3.queries_per_hour, rg: C.rg.queries_per_hour, sls: C.sls.queries_per_hour }, qph, '', x => String(Math.round(x)))}
+  ${verdictsHTML(C.ratio, C.rg_vs_sls)}
+  <p class="note">Sin cola en los tres (espera p95: ${f1(C.ra3.queue_p95_s)} s en RA3, ${f1(C.rg.queue_p95_s)} s en RG, ${f1(C.sls.queue_p95_s)} s en Serverless) y ${C.ra3.failed + C.rg.failed + C.sls.failed} fallas.</p></div>`;
 
 // ELT
 const E = D.elt;
-const eltMax = Math.max(...E.queries.flatMap(q => [q.ra3, q.rg])) * 1.45;
+const eltMax = Math.max(...E.queries.flatMap(q => [q.ra3, q.rg, q.sls])) * 1.45;
 const ELT = { ecopy: 'COPY store_returns', ectas: 'CTAS pesado' };
-$('elt').innerHTML = E.queries.map(q => `<div class="grp"><h3>${ELT[q.q] || q.q}</h3>${pairHTML(q.ra3, q.rg, eltMax, ' s', f1, false)}</div>`).join('') +
-  `<p class="note" style="grid-column:1/-1">Con 2 pasadas, la mediana sin calentamiento es una sola corrida.</p>`;
+$('elt').innerHTML = E.queries.map(q => `<div class="grp"><h3>${ELT[q.q] || q.q}</h3>${barsHTML(q, eltMax, ' s', f1)}${verdictsHTML(q.ra3 / q.rg, q.sls / q.rg)}</div>`).join('') +
+  `<p class="note" style="grid-column:1/-1">Con 2 repeticiones, la mediana sin calentamiento sale de una sola ejecución.</p>`;
+
+// serverless note: wording from results/2026-10-05/summary-serverless.md
+const S = D.serverless;
+$('sls-note').innerHTML =
+  `<p>Restaurado del mismo snapshot, con capacidad fija: base = máximo = ${S.rpu} RPU, la misma memoria que 2 × rg.xlarge (64 GB) a USD 1,50/h frente a 1,52/h. Esta prueba fija la capacidad a propósito para comparar en igualdad de condiciones. La ventaja de Serverless es otra: escalar solo cuando hace falta y no cobrar cuando no hay consultas. ${S.rpu} RPU es el tamaño de entrada; el valor por defecto de AWS es ${S.default_base_rpu} RPU.</p>` +
+  `<p>Por ejecución de las 20 consultas, con la tarifa por segundo de cómputo: RA3 <b>USD ${f3(P.ra3_usd)}</b> · RG <b>USD ${f3(P.rg_usd)}</b> · Serverless <b>USD ${f3(P.sls_usd)}</b>. Factura real de Serverless, que incluye el mínimo de 60 s por consulta: <b>USD ${f3(S.power_usd_per_run)}</b> por ejecución de potencia; todas las pruebas de Serverless del día: <b>USD ${f2(S.bill_usd_all)}</b>.</p>`;
 
 // drill timeline
 const t0 = t(D.drill_resize_start), t1 = t(resizeEnd), span = t1 - t0;
