@@ -32,8 +32,12 @@ result comments): neutral Spanish, no voseo.
 ## Deliverable boundary
 Spec: `docs/superpowers/specs/2026-09-24-redshift-redemption-design.md`.
 Plan: `docs/superpowers/plans/2026-09-24-redshift-redemption.md`.
-The speaker owns the official Google Slides template; we hand over
-`slides/contenido.md` and image assets only.
+Slides (speaker's call, 2026-10-05): we deliver the filled deck
+`slides/redshift-redemption.pptx`, built by `slides/build_deck.py` from the
+community template in `slides/evento/` (event rules in
+`slides/evento/recomendaciones-evento.pdf`), with `slides/contenido.md` as the
+text source of truth and assets in `slides/assets/`. Edit contenido.md and the
+build script together, then rebuild; never hand-edit the .pptx.
 
 ## Framing rule
 Verify, don't attack: AWS claims are promises we test (where they hold, where

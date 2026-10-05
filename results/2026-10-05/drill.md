@@ -16,7 +16,7 @@ una escritura (`INSERT` en una tabla de prueba). Datos crudos en `drill-log.csv`
 | 19:08:35 | Resize `SUCCEEDED`, escritura OK, nodo `rg.xlarge` |
 
 - **Duración total del resize:** unos 2 min 48 s.
-- **Ventana de solo lectura:** entre 2 min 07 s (lo observado, 19:06:25 → 19:08:00)
+- **Ventana de solo lectura:** entre 1 min 35 s (lo observado, 19:06:25 → 19:08:00)
   y 2 min 42 s (cota superior con sondeo de 30 s, 19:05:53 → 19:08:35).
 - **Skew:** idéntico antes y después en todas las tablas (`skew-drill.csv` frente
   a `skew-rg.csv`; `skew_rows` 1.00–1.01 en las tablas de hechos). El mapeo 1:1

@@ -1,0 +1,326 @@
+<title>RA3 frente a RG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a lab readout. One wide column, a strip of four gauges, then one panel per scenario. */
+:root {
+  --bg: #f4f5f7;
+  --panel: #fcfcfb;
+  --ink: #101318;
+  --ink-2: #4a505b;
+  --ink-3: #7b818c;
+  --rule: #dfe2e7;
+  --ra3: #eb6834;
+  --rg: #2a78d6;
+  --scan: #1baf7a;
+  --cpu: #4a3aa7;
+  --good: #0ca30c;
+  --bad: #d03b3b;
+  --bad-soft: rgba(208, 59, 59, .12);
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-data: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111317; --panel: #1a1a19; --ink: #f3f4f6; --ink-2: #c3c2b7; --ink-3: #8f9099;
+    --rule: #2c2e33; --ra3: #d95926; --rg: #3987e5; --scan: #199e70; --cpu: #9085e9;
+    --bad-soft: rgba(208, 59, 59, .22); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111317; --panel: #1a1a19; --ink: #f3f4f6; --ink-2: #c3c2b7; --ink-3: #8f9099;
+  --rule: #2c2e33; --ra3: #d95926; --rg: #3987e5; --scan: #199e70; --cpu: #9085e9;
+  --bad-soft: rgba(208, 59, 59, .22); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 17px; line-height: 1.45; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 40px); padding-block: 28px 40px; display: grid; gap: 22px; }
+.num, .mono { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+
+header { display: grid; gap: 6px; }
+.eyebrow { font: 600 13px/1 var(--f-data); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+h1 { font: 800 clamp(34px, 5vw, 58px)/1 var(--f-display); font-stretch: 112%; letter-spacing: -.02em; margin: 0; text-wrap: balance; }
+h1 .ra3 { color: var(--ra3); } h1 .rg { color: var(--rg); }
+.lede { margin: 0; color: var(--ink-2); font-size: 18px; }
+
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 18px; display: grid; gap: 4px; align-content: start; }
+.tile .k { font: 600 12px/1 var(--f-data); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.tile .v { font: 800 clamp(34px, 4.2vw, 50px)/1.05 var(--f-display); font-stretch: 105%; font-variant-numeric: tabular-nums; }
+.tile .v small { font-size: .5em; font-weight: 600; color: var(--ink-2); }
+.tile .s { color: var(--ink-2); font-size: 14px; }
+
+section { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 20px 22px; display: grid; gap: 14px; min-width: 0; }
+.sec-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px 20px; }
+h2 { font: 750 24px/1.15 var(--f-display); font-stretch: 105%; margin: 0; text-wrap: balance; }
+h2 .sub { font: 400 15px var(--f-body); color: var(--ink-2); margin-left: 8px; font-stretch: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--ink-2); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.seg button { font: 600 14px var(--f-body); color: var(--ink-2); background: transparent; border: 0; padding: 7px 12px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.seg button:focus-visible { outline: 2px solid var(--rg); outline-offset: -2px; }
+
+/* power chart */
+.bars { display: grid; gap: 4px; position: relative; }
+.plot-inner { --lab: 92px; }
+.brow { display: grid; grid-template-columns: var(--lab) minmax(0, 1fr); align-items: center; gap: 10px; cursor: default; }
+.brow .lab { font: 400 14px var(--f-data); color: var(--ink-2); text-align: right; white-space: nowrap; }
+.track { position: relative; height: 20px; }
+.bar { position: absolute; left: 0; top: 2px; height: 16px; border-radius: 0 4px 4px 0; transition: width .4s ease; }
+.bar-val { position: absolute; top: 0; font: 600 13px/20px var(--f-data); color: var(--ink); padding-left: 6px; white-space: nowrap; }
+.brow:hover .bar, .brow:focus-visible .bar { filter: brightness(1.15); }
+.brow:focus-visible { outline: 2px solid var(--rg); outline-offset: 2px; border-radius: 3px; }
+.axis { display: grid; grid-template-columns: var(--lab) minmax(0, 1fr); gap: 10px; }
+.axis .ticks { position: relative; height: 18px; font: 12px var(--f-data); color: var(--ink-3); }
+.axis .ticks span { position: absolute; transform: translateX(-50%); }
+.gridline { position: absolute; top: 0; bottom: 22px; width: 1px; background: var(--rule); }
+.gridline.par { background: var(--ink-3); width: 2px; }
+.par-lab { position: absolute; top: -18px; font: 12px var(--f-data); color: var(--ink-3); transform: translateX(-50%); white-space: nowrap; }
+.plot { position: relative; padding-top: 18px; }
+.plot-inner { position: relative; }
+
+.tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--panel); padding: 8px 10px; border-radius: 6px; font: 13px/1.4 var(--f-data); z-index: 10; white-space: nowrap; }
+
+/* paired bars (lake, concurrency, ELT) */
+.groups { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.grp { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.grp h3 { font: 700 16px/1.2 var(--f-display); margin: 0; }
+.pair { display: grid; gap: 6px; }
+.prow { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 8px; align-items: center; font-size: 13px; }
+.prow .who { font: 600 12px var(--f-data); color: var(--ink-3); }
+.prow .track { height: 26px; }
+.prow .bar { top: 0; height: 26px; }
+.prow .bar-val { line-height: 26px; }
+.verdict { font: 700 15px var(--f-data); }
+.verdict.win { color: var(--ink); } .verdict.lose { color: var(--bad); }
+.note { font-size: 14px; color: var(--ink-2); margin: 0; border-top: 1px solid var(--rule); padding-top: 8px; }
+
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+
+/* drill */
+.tl { position: relative; height: 110px; margin: 8px 12px 0; }
+.tl .line { position: absolute; left: 0; right: 0; top: 50px; height: 2px; background: var(--rule); }
+.tl .win-up { position: absolute; top: 30px; height: 42px; background: var(--bad-soft); border-radius: 4px; }
+.tl .win-obs { position: absolute; top: 38px; height: 26px; border: 2px solid var(--bad); border-radius: 4px; }
+.tl .dot { position: absolute; top: 40px; width: 22px; height: 22px; margin-left: -11px; border-radius: 50%; border: 3px solid var(--panel); display: grid; place-items: center; color: #fff; font: 700 11px var(--f-data); }
+.tl .dot.ok { background: var(--good); } .tl .dot.fail { background: var(--bad); }
+.tl .t { position: absolute; top: 72px; transform: translateX(-50%); font: 12px var(--f-data); color: var(--ink-3); white-space: nowrap; }
+.tl .ev { position: absolute; top: 0; transform: translateX(-50%); font: 600 12px var(--f-data); color: var(--ink-2); white-space: nowrap; }
+.drill-facts { display: flex; flex-wrap: wrap; gap: 8px 28px; font-size: 15px; color: var(--ink-2); }
+.drill-facts b { color: var(--ink); font-family: var(--f-data); }
+
+footer { font: 13px var(--f-data); color: var(--ink-3); text-align: center; }
+
+@media (max-width: 900px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .two { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 520px) {
+  .tiles { grid-template-columns: minmax(0, 1fr); }
+  .two section .groups { grid-template-columns: minmax(0, 1fr) !important; }
+  .groups { grid-template-columns: minmax(0, 1fr); }
+  .plot-inner { --lab: 64px; }
+  .tl .t:nth-of-type(even) { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .bar { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Redshift Redemption · resultados del laboratorio</div>
+    <h1><span class="ra3">RA3</span> frente a <span class="rg">RG</span>, medido</h1>
+    <p class="lede">TPC-DS de 100 GB, 2 nodos por clúster (ra3.xlplus y rg.xlarge), mismo snapshot y misma versión, corridas del 2026-10-05.</p>
+  </header>
+
+  <div class="tiles" id="tiles"></div>
+
+  <section aria-labelledby="h-power">
+    <div class="sec-head">
+      <h2 id="h-power">Potencia<span class="sub">aceleración de RG por consulta (RA3 ÷ RG), 20 consultas</span></h2>
+      <div class="controls">
+        <div class="seg" role="group" aria-label="Filtrar por clase">
+          <button type="button" id="f-all" data-f="all" aria-pressed="true">Todas</button>
+          <button type="button" id="f-scan" data-f="scan" aria-pressed="false">Scan</button>
+          <button type="button" id="f-cpu" data-f="cpu" aria-pressed="false">CPU</button>
+        </div>
+        <div class="seg" role="group" aria-label="Ordenar">
+          <button type="button" id="s-x" data-s="x" aria-pressed="true">Por aceleración</button>
+          <button type="button" id="s-ra3" data-s="ra3" aria-pressed="false">Por tiempo en RA3</button>
+        </div>
+      </div>
+    </div>
+    <div class="legend" id="power-legend"></div>
+    <div class="plot"><div class="plot-inner" id="power-plot"></div></div>
+  </section>
+
+  <section aria-labelledby="h-lake">
+    <div class="sec-head">
+      <h2 id="h-lake">Lago<span class="sub">barras: tiempo total de 6 consultas en segundos (menos es mejor) · cifra: media geométrica de la aceleración</span></h2>
+      <div class="legend"><span><i style="background:var(--ra3)"></i>RA3</span><span><i style="background:var(--rg)"></i>RG</span></div>
+    </div>
+    <div class="groups" id="lake"></div>
+  </section>
+
+  <div class="two">
+    <section aria-labelledby="h-conc">
+      <div class="sec-head"><h2 id="h-conc">Concurrencia<span class="sub">5 flujos, 30 min</span></h2></div>
+      <div id="conc"></div>
+    </section>
+    <section aria-labelledby="h-elt">
+      <div class="sec-head"><h2 id="h-elt">ELT<span class="sub">segundos (menos es mejor)</span></h2></div>
+      <div id="elt" class="groups" style="grid-template-columns:repeat(2,minmax(0,1fr))"></div>
+    </section>
+  </div>
+
+  <section aria-labelledby="h-drill">
+    <div class="sec-head">
+      <h2 id="h-drill">Migración<span class="sub">elastic resize de 2x ra3.xlplus a 2x rg.xlarge, sonda de escritura cada 30 s</span></h2>
+      <div class="legend"><span><i style="background:var(--good)"></i>✓ escritura OK</span><span><i style="background:var(--bad)"></i>✕ escritura rechazada</span></div>
+    </div>
+    <div class="tl" id="tl"></div>
+    <div class="drill-facts" id="drill-facts"></div>
+  </section>
+
+  <footer>Todos los números salen de results/2026-10-05/ del repo andrezc98/redshift-redemption</footer>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script type="application/json" id="data">{"prices":{"ra3.xlplus":1.086,"rg.xlarge":0.7602,"nodes":2},"power":{"geomean":1.8978137679931342,"by_class":{"scan":2.2844648275920667,"cpu":1.576604312083306},"ra3_total_s":148.28596050000002,"rg_total_s":96.6676995,"ra3_usd":0.08946586283500002,"rg_usd":0.040825991755499995,"queries":[{"q":"query14","cls":"cpu","ra3":26.1578755,"rg":13.149491999999999,"x":1.9892689010343518},{"q":"query19","cls":"scan","ra3":0.3766695,"rg":0.173883,"x":2.166223840168389},{"q":"query23","cls":"cpu","ra3":35.081597,"rg":31.7220935,"x":1.1059042178284988},{"q":"query28","cls":"scan","ra3":4.643617,"rg":3.459521,"x":1.342271661308025},{"q":"query3","cls":"scan","ra3":0.8159765,"rg":0.491104,"x":1.6615146689906823},{"q":"query42","cls":"scan","ra3":0.1986365,"rg":0.0854245,"x":2.325287241950494},{"q":"query43","cls":"scan","ra3":1.2633295,"rg":0.42368649999999997,"x":2.9817553780920565},{"q":"query47","cls":"cpu","ra3":9.377019,"rg":6.9740585,"x":1.344556974966585},{"q":"query48","cls":"scan","ra3":1.5243030000000002,"rg":0.426323,"x":3.575465081639978},{"q":"query52","cls":"scan","ra3":0.2020555,"rg":0.0847725,"x":2.383502904833525},{"q":"query55","cls":"scan","ra3":0.185664,"rg":0.080386,"x":2.309655910233125},{"q":"query57","cls":"cpu","ra3":5.2266895,"rg":4.8536275,"x":1.0768625115957087},{"q":"query64","cls":"cpu","ra3":5.7131989999999995,"rg":3.2070755,"x":1.7814357660117448},{"q":"query67","cls":"cpu","ra3":5.2347455,"rg":2.9707985,"x":1.7620668315269448},{"q":"query7","cls":"scan","ra3":0.7877685,"rg":0.3541765,"x":2.2242257744373215},{"q":"query72","cls":"cpu","ra3":35.069488500000006,"rg":17.5307815,"x":2.0004520905129075},{"q":"query78","cls":"cpu","ra3":13.278716,"rg":9.276706,"x":1.431404207484855},{"q":"query89","cls":"cpu","ra3":0.885636,"rg":0.422613,"x":2.09561939646911},{"q":"query96","cls":"scan","ra3":1.77406,"rg":0.672039,"x":2.639817034428061},{"q":"query98","cls":"cpu","ra3":0.48891450000000003,"rg":0.3091375,"x":1.58154381141078}]},"lake":{"local":{"ra3_total_s":7.588757,"rg_total_s":4.453867499999999,"geomean":1.7730940760947784,"n":6,"queries":[{"q":"lq3","ra3":0.678674,"rg":0.40858249999999996},{"q":"lq42","ra3":0.1603095,"rg":0.090444},{"q":"lq52","ra3":0.173029,"rg":0.088336},{"q":"lq55","ra3":0.1563495,"rg":0.0829245},{"q":"lqcu","ra3":2.9307325000000004,"rg":1.8785479999999999},{"q":"lqst","ra3":3.4896624999999997,"rg":1.9050325}]},"iceberg":{"ra3_total_s":29.4428465,"rg_total_s":14.5768445,"geomean":1.8704050674625403,"n":6,"queries":[{"q":"lq3","ra3":1.6926899999999998,"rg":2.5409165},{"q":"lq42","ra3":3.34598,"rg":1.362477},{"q":"lq52","ra3":3.0020345,"rg":1.5652460000000001},{"q":"lq55","ra3":3.3644555,"rg":1.321555},{"q":"lqcu","ra3":8.443077,"rg":3.68183},{"q":"lqst","ra3":9.5946095,"rg":4.10482}]},"parquet_big":{"ra3_total_s":31.6884205,"rg_total_s":50.6137745,"geomean":0.8181028595870057,"n":6,"queries":[{"q":"lq3","ra3":1.7957315,"rg":17.9697715},{"q":"lq42","ra3":3.9016475,"rg":2.745562},{"q":"lq52","ra3":3.873271,"rg":2.237167},{"q":"lq55","ra3":4.602302,"rg":2.391771},{"q":"lqcu","ra3":7.1545819999999996,"rg":6.1029605},{"q":"lqst","ra3":10.3608865,"rg":19.1665425}]},"parquet_small":{"ra3_total_s":46.505771,"rg_total_s":36.298662,"geomean":1.7605697097698927,"n":6,"queries":[{"q":"lq3","ra3":7.1917355,"rg":12.7117005},{"q":"lq42","ra3":8.1486695,"rg":2.323663},{"q":"lq52","ra3":7.60694,"rg":2.1075135},{"q":"lq55","ra3":7.1456055,"rg":2.0024405},{"q":"lqcu","ra3":8.103604,"rg":4.6044225},{"q":"lqst","ra3":8.3092165,"rg":12.548922000000001}]}},"elt":{"ra3_total_s":47.874773000000005,"rg_total_s":31.576126,"geomean":1.5556688269424161,"n":2,"queries":[{"q":"ecopy","ra3":40.130273,"rg":26.780941},{"q":"ectas","ra3":7.7445,"rg":4.795185}]},"concurrency":{"ra3":{"queries_per_hour":680.0,"queue_p50_s":0.0,"queue_p95_s":0.0,"failed":0},"rg":{"queries_per_hour":1224.0,"queue_p50_s":0.0,"queue_p95_s":0.0,"failed":0},"ratio":1.8},"drill":[{"ts":"2026-10-05T19:05:53Z","status":"IN_PROGRESS","probe":"FINISHED"},{"ts":"2026-10-05T19:06:25Z","status":"IN_PROGRESS","probe":"FAILED"},{"ts":"2026-10-05T19:06:57Z","status":"IN_PROGRESS","probe":"FAILED"},{"ts":"2026-10-05T19:07:29Z","status":"IN_PROGRESS","probe":"FAILED"},{"ts":"2026-10-05T19:08:00Z","status":"IN_PROGRESS","probe":"FAILED"},{"ts":"2026-10-05T19:08:35Z","status":"SUCCEEDED","probe":"FINISHED"}],"drill_resize_start":"2026-10-05T19:05:47Z","source":"results/2026-10-05/ via runner/rr/stats.py"}</script>
+<script>
+const D = JSON.parse(document.getElementById('data').textContent);
+const $ = id => document.getElementById(id);
+const f2 = x => x.toFixed(2), f1 = x => x.toFixed(1);
+const xfmt = x => f2(x) + 'x';
+const sec = s => { s = Math.round(s); return Math.floor(s / 60) + ' min ' + String(s % 60).padStart(2, '0') + ' s'; };
+const t = iso => new Date(iso).getTime() / 1000;
+const hhmmss = iso => iso.slice(11, 19);
+
+// tooltip
+const tip = $('tip');
+function showTip(e, html) { tip.innerHTML = html; tip.hidden = false; moveTip(e); }
+function moveTip(e) {
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+function hideTip() { tip.hidden = true; }
+function hover(el, html) {
+  el.addEventListener('mouseenter', e => showTip(e, html));
+  el.addEventListener('mousemove', moveTip);
+  el.addEventListener('mouseleave', hideTip);
+  el.addEventListener('focus', () => { const r = el.getBoundingClientRect(); showTip({ clientX: r.left + r.width / 2, clientY: r.bottom }, html); });
+  el.addEventListener('blur', hideTip);
+}
+
+// tiles
+const P = D.power, C = D.concurrency, dr = D.drill;
+const resizeEnd = dr.find(r => r.status === 'SUCCEEDED').ts;
+const migS = t(resizeEnd) - t(D.drill_resize_start);
+$('tiles').innerHTML = [
+  ['Potencia', xfmt(P.geomean), 'media geométrica, 20 consultas'],
+  ['Concurrencia', f1(C.ratio) + 'x', `<span class="num">${Math.round(C.ra3.queries_per_hour)}</span> → <span class="num">${Math.round(C.rg.queries_per_hour)}</span> consultas/hora`],
+  ['Costo por corrida', `<small>USD</small> ${P.ra3_usd.toFixed(3)} <small>→</small> ${P.rg_usd.toFixed(3)}`, 'corrida de potencia, tarifa on-demand'],
+  ['Migración', sec(migS).replace(' min ', '<small> min </small>').replace(' s', '<small> s</small>'), 'elastic resize completo'],
+].map(([k, v, s]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
+
+// power chart
+const XMAX = Math.ceil(Math.max(...P.queries.map(q => q.x)));
+const pct = x => (x / XMAX * 100) + '%';
+const CLS = { scan: 'Scan', cpu: 'CPU' };
+$('power-legend').innerHTML =
+  `<span><i style="background:var(--scan)"></i>Scan (lectura de tablas): ${xfmt(P.by_class.scan)}</span>` +
+  `<span><i style="background:var(--cpu)"></i>CPU (joins, ventanas): ${xfmt(P.by_class.cpu)}</span>` +
+  `<span>Línea en 1x: mismo tiempo en ambos</span>`;
+let filt = 'all', sortBy = 'x';
+function drawPower() {
+  const rows = P.queries.filter(q => filt === 'all' || q.cls === filt)
+    .sort((a, b) => b[sortBy] - a[sortBy]);
+  let html = '';
+  for (let i = 0; i <= XMAX; i++) html += `<div class="gridline${i === 1 ? ' par' : ''}" style="left:calc(var(--lab) + 10px + (100% - var(--lab) - 10px) * ${i / XMAX})">${i === 1 ? '<span class="par-lab">paridad</span>' : ''}</div>`;
+  html += '<div class="bars">' + rows.map(q =>
+    `<div class="brow" tabindex="0" data-q="${q.q}"><div class="lab">${q.q.replace('query', 'q')}</div>
+      <div class="track"><div class="bar" style="width:${pct(q.x)};background:var(--${q.cls})"></div>
+      <div class="bar-val" style="left:${pct(q.x)}">${xfmt(q.x)}</div></div></div>`).join('') + '</div>';
+  html += '<div class="axis"><div></div><div class="ticks">' +
+    Array.from({ length: XMAX + 1 }, (_, i) => `<span style="left:${i / XMAX * 100}%">${i}x</span>`).join('') + '</div></div>';
+  $('power-plot').innerHTML = html;
+  $('power-plot').querySelectorAll('.brow').forEach(el => {
+    const q = P.queries.find(r => r.q === el.dataset.q);
+    hover(el, `${q.q} · ${CLS[q.cls]}<br>RA3 ${f2(q.ra3)} s<br>RG&nbsp; ${f2(q.rg)} s<br>RG ${xfmt(q.x)} más rápido`);
+  });
+}
+document.querySelectorAll('[data-f]').forEach(b => b.addEventListener('click', () => {
+  filt = b.dataset.f; document.querySelectorAll('[data-f]').forEach(x => x.setAttribute('aria-pressed', x === b)); drawPower();
+}));
+document.querySelectorAll('[data-s]').forEach(b => b.addEventListener('click', () => {
+  sortBy = b.dataset.s; document.querySelectorAll('[data-s]').forEach(x => x.setAttribute('aria-pressed', x === b)); drawPower();
+}));
+drawPower();
+
+// paired bars
+function pairHTML(a, b, max, unit, fmt, betterHigher, gm) {
+  const ratio = gm ?? (betterHigher ? b / a : a / b);  // gm: stats.geomean of per-query speedups
+  const row = (who, v, c) => `<div class="prow"><span class="who">${who}</span><div class="track">
+    <div class="bar" style="width:${v / max * 100}%;background:var(--${c})"></div>
+    <div class="bar-val" style="left:${v / max * 100}%">${fmt(v)}${unit}</div></div></div>`;
+  const verdict = ratio >= 1 ? `<div class="verdict win">RG ${xfmt(ratio)}</div>` : `<div class="verdict lose">RG ${xfmt(ratio)} · más lento</div>`;
+  return `<div class="pair">${row('RA3', a, 'ra3')}${row('RG', b, 'rg')}</div>${verdict}`;
+}
+const L = D.lake;
+const lakeMax = Math.max(...Object.values(L).flatMap(v => [v.ra3_total_s, v.rg_total_s])) * 1.45;
+const lakeGroups = [
+  ['local', 'Tablas locales', 'Línea base: los mismos datos dentro del clúster.'],
+  ['iceberg', 'Iceberg en S3', 'Con caché caliente. La primera pasada de RG es lenta (hasta 27 s); después RG cachea los datos del lago. Se excluye la pasada de calentamiento, como en todos los escenarios.'],
+  ['parquet_big', 'Parquet, archivos grandes', 'Mismo plan en ambos clústeres. Cambia el lector: Spectrum en RA3, motor integrado en RG. store_sales quedó en 4 archivos de ≈3,8 GB.'],
+  ['parquet_small', 'Parquet, archivos de 0,5 GB', 'Mismos datos reescritos en 31 archivos de ≈0,5 GB. RG mejora y RA3 empeora. Es una sola repetición: vale la dirección, no el número.'],
+];
+$('lake').innerHTML = lakeGroups.map(([k, h, note]) =>
+  `<div class="grp" data-k="${k}"><h3>${h}</h3>${pairHTML(L[k].ra3_total_s, L[k].rg_total_s, lakeMax, ' s', f1, false, L[k].geomean)}<p class="note">${note}</p></div>`).join('');
+$('lake').querySelectorAll('.grp').forEach(el => {
+  const v = L[el.dataset.k];
+  hover(el.querySelector('.pair'), v.queries.map(q => `${q.q.padEnd(5, ' ')} RA3 ${f2(q.ra3).padStart(6, ' ')} s · RG ${f2(q.rg).padStart(6, ' ')} s`).join('<br>'));
+});
+
+// concurrency
+const qph = C.rg.queries_per_hour * 1.3;
+$('conc').innerHTML = `<div class="grp"><h3>Consultas por hora (más es mejor)</h3>${pairHTML(C.ra3.queries_per_hour, C.rg.queries_per_hour, qph, '', x => String(Math.round(x)), true)}
+  <p class="note">Sin cola en ambos (espera p50 y p95: ${f1(C.ra3.queue_p95_s)} s en RA3, ${f1(C.rg.queue_p95_s)} s en RG) y ${C.ra3.failed + C.rg.failed} fallas.</p></div>`;
+
+// ELT
+const E = D.elt;
+const eltMax = Math.max(...E.queries.flatMap(q => [q.ra3, q.rg])) * 1.45;
+const ELT = { ecopy: 'COPY store_returns', ectas: 'CTAS pesado' };
+$('elt').innerHTML = E.queries.map(q => `<div class="grp"><h3>${ELT[q.q] || q.q}</h3>${pairHTML(q.ra3, q.rg, eltMax, ' s', f1, false)}</div>`).join('') +
+  `<p class="note" style="grid-column:1/-1">Con 2 pasadas, la mediana sin calentamiento es una sola corrida.</p>`;
+
+// drill timeline
+const t0 = t(D.drill_resize_start), t1 = t(resizeEnd), span = t1 - t0;
+const xp = iso => ((t(iso) - t0) / span * 100) + '%';
+const fails = dr.filter(r => r.probe === 'FAILED');
+const firstFail = fails[0], lastFail = fails[fails.length - 1];
+const okBefore = dr[dr.indexOf(firstFail) - 1], okAfter = dr[dr.indexOf(lastFail) + 1];
+let tl = '<div class="line"></div>';
+tl += `<div class="win-up" style="left:${xp(okBefore.ts)};width:calc(${xp(okAfter.ts)} - ${xp(okBefore.ts)})"></div>`;
+tl += `<div class="win-obs" style="left:calc(${xp(firstFail.ts)} - 13px);width:calc(${xp(lastFail.ts)} - ${xp(firstFail.ts)} + 26px)"></div>`;
+tl += `<span class="ev" style="left:0;transform:translateX(-11px)">inicio del resize · ${hhmmss(D.drill_resize_start)}</span><span class="ev" style="left:50%">solo lectura</span><span class="ev" style="left:100%;transform:translateX(calc(-100% + 11px))">${dr[dr.length - 1].status}</span>`;
+tl += `<span class="dot ok" style="left:0;background:var(--ink-3)" title="Inicio del elastic resize"></span>`;
+dr.forEach(r => {
+  const ok = r.probe === 'FINISHED';
+  tl += `<span class="dot ${ok ? 'ok' : 'fail'}" style="left:${xp(r.ts)}" title="${hhmmss(r.ts)} · ${r.status} · escritura ${ok ? 'OK' : 'rechazada'}">${ok ? '✓' : '✕'}</span><span class="t" style="left:${xp(r.ts)}${r === dr[dr.length - 1] ? ';transform:translateX(calc(-100% + 11px))' : ''}">${hhmmss(r.ts)}</span>`;
+});
+$('tl').innerHTML = tl;
+$('drill-facts').innerHTML =
+  `<span>Resize completo: <b>${sec(migS)}</b></span>` +
+  `<span>Escrituras rechazadas observadas: <b>${sec(t(lastFail.ts) - t(firstFail.ts))}</b> (${hhmmss(firstFail.ts)} → ${hhmmss(lastFail.ts)})</span>` +
+  `<span>Cota superior con sondeo de 30 s: <b>${sec(t(okAfter.ts) - t(okBefore.ts))}</b></span>` +
+  `<span>Skew idéntico antes y después</span>`;
+</script>
