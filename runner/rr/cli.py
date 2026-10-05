@@ -125,11 +125,12 @@ def _counts(args) -> int:
     actual = {r["t"]: int(r["n"]) for r in fetch(client, args.target, counts_sql(tables))}
     for t in tables:
         print(f"{t},{actual.get(t, 'missing')}")
-    if args.scale != "1TB":
-        return 0  # awslabs only publishes expected counts for 1 TB
-    with open(SQL / "expected_counts_1tb.csv") as f:
-        expected = {r["table"]: int(r["rows"]) for r in csv.DictReader(f)}
-    bad = queries.compare_counts(actual, expected)
+    if args.scale == "1TB":
+        with open(SQL / "expected_counts_1tb.csv") as f:
+            expected = {r["table"]: int(r["rows"]) for r in csv.DictReader(f)}
+        bad = queries.compare_counts(actual, expected)
+    else:  # awslabs only publishes expected counts for 1 TB: at 100 GB, gate on empty or missing tables
+        bad = [f"{t}: {actual.get(t, 'missing')} rows" for t in tables if not actual.get(t)]
     for line in bad:
         print(f"MISMATCH: {line}", file=sys.stderr)
     return 4 if bad else 0

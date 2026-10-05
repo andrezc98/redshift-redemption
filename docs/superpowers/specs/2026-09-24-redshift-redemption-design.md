@@ -13,7 +13,9 @@ no Spectrum scan fee) on the cluster size most teams actually run, and what does
 the migration itself cost in time and risk?
 
 Framing: verify, don't attack. AWS measured TPC-DS/TPC-H at 10 TB on
-rg.4xlarge; this lab measures 1 TB on 2-node xlplus/xlarge. Deltas are
+rg.4xlarge; this lab measures 100 GB on 2-node xlplus/xlarge (cut from 1 TB on
+2026-10-05 to save lab hours; at this scale fixed overheads weigh more, say so on
+stage). Deltas are
 attributed to "engine + silicon", never silicon alone (RG ships a new
 vectorized data-lake engine together with Graviton).
 
@@ -64,7 +66,7 @@ database `tpcds`, same Redshift version (recorded from
    Iceberg in an S3 table bucket (written by `rr-ra3` with CTAS) and as Parquet
    (UNLOAD) behind a Glue external schema; 6 lake queries serial ×3 on both
    clusters. RA3 Spectrum bytes scanned → USD.
-4. **ELT**: COPY `store_returns` (1 TB set) into a fresh table + one heavy CTAS
+4. **ELT**: COPY `store_returns` (100 GB set) into a fresh table + one heavy CTAS
    (`store_sales` ⨝ `date_dim` ⨝ `item` aggregated), 2 runs each.
 5. **Migration drill**: restore a second `rr-ra3` copy, elastic resize it to
    2× rg.xlarge, time the read-only window, then measure slice skew
@@ -98,27 +100,24 @@ mark the run invalid instead of silently counting.
 
 | Item | Assumption | USD |
 |---|---|---|
-| Dev at 100 GB | ~6 h both clusters | 15–20 |
-| `rr-ra3` at 1 TB | ~14 h (load 3–5 h, scenarios 1–4, idle) | 30 |
-| `rr-rg` at 1 TB | ~9 h | 14 |
-| Migration drill | ~2 h RA3 + 1 h RG | 6 |
-| Serverless | 32 RPU × 1–1.5 h | 12–18 |
-| Spectrum | 1–3 TB scanned | 5–15 |
-| Storage (RMS, snapshot, S3 Tables, Parquet) | ~2 weeks, ~400 GB copies | 10–15 |
-| **Core** | | **≈ 90–120** |
+| `rr-ra3` at 100 GB | ~6 h (load ~0.5 h, lake, scenarios, idle) | 13–15 |
+| `rr-rg` at 100 GB | ~4 h | 6 |
+| Migration drill | ~1 h RA3 + 1 h RG | 4 |
+| Serverless | 32 RPU × 1 h | 12 |
+| Spectrum | < 0.3 TB scanned | 1–2 |
+| Storage (RMS, snapshot, S3 Tables, Parquet) | days, ~40 GB copies | 1–2 |
+| **Core** | | **≈ 40–45** |
 | Optional 4xlarge | ~3 h each | +65–80 |
 
-Controls: pause between sessions, same-day teardown, Budget alert USD 80. The
-100 GB load rate re-estimates the 1 TB load before committing to it.
+Controls: one session, same-day teardown, Budget alert USD 80.
 
 ## 7. Timeline (event 2026-10-08)
 
 | When | What |
 |---|---|
 | 09-24 → 09-25 | Plan tasks 1–11: runner, SQL, Terraform, runbook (no AWS spend) |
-| 09-26 → 09-27 | Task 12: 100 GB dev session; re-estimate the 1 TB load |
-| 10-02 → 10-04 | Task 13: 1 TB load, lake, scenarios, drill, Serverless, teardown |
-| 10-05 → 10-07 | `slides/contenido.md`, speaker notes, rehearsal |
+| 10-05 → 10-06 | Single 100 GB session: load, lake, scenarios, drill, Serverless, teardown (replaces Tasks 12–13; 1 TB cut 2026-10-05) |
+| 10-06 → 10-07 | `slides/contenido.md`, speaker notes, rehearsal |
 | 10-08 | Talk |
 
 Slack: if the dev session slips past 09-28, cut the Serverless run and the

@@ -67,3 +67,12 @@ def test_report_warns_on_version_mismatch_in_header(tmp_path):
                "--prices", str(tmp_path / "p.md"), "--out", str(tmp_path / "s.md")])
     text = (tmp_path / "s.md").read_text()
     assert rc == 0 and "1.0.1" in text.split("\n")[0] and "1.0.2" in text.split("\n")[0]
+
+
+def test_counts_at_100gb_fails_on_empty_table(monkeypatch, capsys):
+    import rr.cli as cli
+
+    monkeypatch.setattr(cli, "data_client", lambda: None)
+    monkeypatch.setattr(cli, "fetch", lambda c, t, sql: [{"t": "store_sales", "n": "0"}, {"t": "item", "n": "5"}])
+    assert cli.main(["counts", "--target", "cluster:rr-ra3", "--scale", "100GB"]) == 4
+    assert "MISMATCH: store_sales: 0 rows" in capsys.readouterr().err
