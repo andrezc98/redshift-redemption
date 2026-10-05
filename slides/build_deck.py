@@ -239,15 +239,33 @@ def picture(slide, path, x, y, w, h):
     return slide.shapes.add_picture(str(path), Inches(x + (w - pw) / 2), Inches(y + (h - ph) / 2), Inches(pw), Inches(ph))
 
 
+HEAD = "Arial Black"  # the template's embedded "Raleway 1 Heavy" garbles letters in PowerPoint for Mac
+
+
+def _heavy(run, size=None):
+    """Heading font on every script slot (latin/ea/cs/sym), no synthetic bold."""
+    rPr = run._r.get_or_add_rPr()
+    rPr.set("b", "0")
+    if size:
+        rPr.set("sz", str(int(size * 100)))
+    A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+    for tag in ("latin", "ea", "cs", "sym"):
+        el = rPr.find(A + tag)
+        if el is None:
+            el = etree.SubElement(rPr, A + tag)
+        el.set("typeface", HEAD)
+
+
 def set_title(slide, text, size=54):
     for sh in slide.shapes:
         if sh.has_text_frame and sh.text_frame.text.strip() in ("TÍTULO",):
             sh.left, sh.top, sh.width, sh.height = Inches(3.85), Inches(0.95), Inches(13.2), Inches(2.05)
-            size = min(size, 44 if len(text) > 30 else size)
+            size = min(size, int(13.0 * 72 / (0.68 * len(text))))  # Arial Black is wide: fit one line
             tf = sh.text_frame
             tf.word_wrap, tf.vertical_anchor = True, MSO_ANCHOR.MIDDLE
             run = tf.paragraphs[0].runs[0]
-            run.text, run.font.size = text, Pt(size)
+            run.text = text
+            _heavy(run, size)
             for extra in tf.paragraphs[0].runs[1:]:
                 extra.text = ""
             return
@@ -259,9 +277,11 @@ def set_transition(slide, line1, line2=""):
         if sh.has_text_frame and "TRANSICI" in sh.text_frame.text:
             p1, p2 = sh.text_frame.paragraphs[:2]
             p1.runs[0].text = line1
+            _heavy(p1.runs[0], 88)
             for r in p1.runs[1:]:
                 r.text = ""
             p2.runs[0].text = ("        " + line2) if line2 else ""
+            _heavy(p2.runs[0], 88)
             for r in p2.runs[1:]:
                 r.text = ""
             return
@@ -396,7 +416,7 @@ def fill(prs):
             ["ra3.xlplus", "4", "1,086", "1 : 1", "rg.xlarge", "4", "0,7602", "de 0,272 a 0,190"],
             ["ra3.4xlarge", "12", "3,26", "4 : 3", "rg.4xlarge", "16", "3,04267", "de 0,272 a 0,190"],
             ["—", "", "", "", "rg.12xlarge", "48", "9,128", "0,190"]]
-    table(s, X0, Y0, 15.2, rows, [2.4, 1.1, 1.5, 1.0, 2.5, 1.1, 1.6, 4.0], size=21, row_h=0.72, hl_rows=(3,))
+    table(s, X0, Y0, 15.2, rows, [2.4, 1.1, 1.75, 0.9, 2.5, 1.1, 1.75, 3.7], size=21, row_h=0.72, hl_rows=(3,))
     textbox(s, X0, Y0 + 4.0, 15.2, 1.6, ["**4 nodos ra3.4xlarge equivalen a 3 rg.4xlarge** (48 vCPU en total): USD 13,04 frente a 9,13 por hora"],
             size=26, color=WHITE)
     textbox(s, X0, Y0 + 5.15, 15.2, 0.6, ["vCPU: documentación de Redshift («Node type details»). Precios on-demand en us-east-1, Price List API."],
