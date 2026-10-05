@@ -1,0 +1,119 @@
+# Terraform for infra/ with no stored credentials: the job assumes rr-gha through
+# GitHub's OIDC provider (both created once by infra/bootstrap/), state in the S3
+# bucket from the same bootstrap. Adapted from ../armed-and-dangerous.
+#
+# Manual dispatch only, never on push: an apply starts billing Redshift clusters.
+# Dispatching apply/destroy IS the speaker's GO (CLAUDE.md).
+#
+# Action tags verified 2026-10-05 (GitHub releases API): actions/checkout v7
+# (v7.0.1), aws-actions/configure-aws-credentials v6 (v6.3.0),
+# hashicorp/setup-terraform v4 (v4.0.1), actions/upload-artifact v7 (v7.0.1).
+name: infra
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "plan reads only; apply/destroy run with -auto-approve (this dispatch is the gate)"
+        type: choice
+        required: true
+        default: plan
+        options: [plan, apply, destroy]
+      ra3_enabled:
+        description: "rr-ra3 cluster exists"
+        type: boolean
+        default: true
+      rg_snapshot_id:
+        description: "Snapshot rr-rg restores from (e.g. rr-ra3-100gb). Empty = no rr-rg. Pass it on EVERY later apply or rr-rg is destroyed."
+        type: string
+        default: ""
+      serverless_enabled:
+        description: "rr-sls namespace/workgroup exists"
+        type: boolean
+        default: false
+
+permissions:
+  id-token: write
+  contents: read
+
+# Never cancel a run in flight: a cancelled apply leaves half a cluster and a
+# stale S3 lock file.
+concurrency:
+  group: infra
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  TF_IN_AUTOMATION: "true"
+  TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+  TF_VAR_ra3_enabled: ${{ inputs.ra3_enabled }}
+  TF_VAR_rg_snapshot_id: ${{ inputs.rg_snapshot_id }}
+  TF_VAR_serverless_enabled: ${{ inputs.serverless_enabled }}
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    # rr-gha trusts repo:...:environment:lab only; without this line the job
+    # cannot assume the role.
+    environment: lab
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Refuse without bootstrap variables
+        run: |
+          if [ -z "${{ vars.AWS_ROLE_ARN }}" ] || [ -z "${{ vars.TF_STATE_BUCKET }}" ] || [ -z "${{ vars.ALERT_EMAIL }}" ]; then
+            echo "Set AWS_ROLE_ARN, TF_STATE_BUCKET and ALERT_EMAIL repository variables first (runbooks/lab-day.md §0)." >&2
+            exit 1
+          fi
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-session-name: rr-infra-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Private repo: printing the account here is how a wrong role gets caught.
+      - name: Which identity did we get
+        run: aws sts get-caller-identity --query Arn --output text
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.15.2 # the local toolchain this root was validated with
+
+      - run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
+
+      # terraform destroy fails on a table bucket that still holds tables (runbook §6).
+      - name: Table bucket must be empty before destroy
+        if: inputs.action == 'destroy'
+        run: |
+          set -euo pipefail
+          arn="$(aws s3tables list-table-buckets --query "tableBuckets[?name=='rr-lake'].arn" --output text)"
+          if [ -n "$arn" ] && [ -n "$(aws s3tables list-tables --table-bucket-arn "$arn" --query 'tables[].name' --output text)" ]; then
+            echo "rr-lake still has tables: run sql/lake_drop.sql from the laptop first (runbook §6)." >&2
+            exit 1
+          fi
+
+      - name: terraform plan
+        if: inputs.action == 'plan'
+        run: |
+          terraform plan -input=false -out=terraform.tfplan
+          terraform show -no-color terraform.tfplan > plan.txt
+
+      - name: Upload the plan
+        if: inputs.action == 'plan'
+        uses: actions/upload-artifact@v7
+        with:
+          name: plan-${{ github.run_id }}
+          path: infra/plan.txt
+          retention-days: 7
+
+      - name: terraform apply
+        if: inputs.action == 'apply'
+        run: terraform apply -input=false -auto-approve
+
+      - name: terraform destroy
+        if: inputs.action == 'destroy'
+        run: terraform destroy -input=false -auto-approve

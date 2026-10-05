@@ -2,16 +2,17 @@ import os
 from dataclasses import dataclass
 
 REGION = "us-east-1"
+LAB_PROFILES = ("morrislabs-poc",)  # Morris Labs POC account (SSO), chosen for the lab on 2026-10-05
 
 
 def require_sandbox() -> None:
-    """Refuse to touch AWS unless the personal sandbox profile or CI OIDC is in use."""
+    """Refuse to touch AWS unless a sandbox/lab profile or CI OIDC is in use."""
     if os.environ.get("GITHUB_ACTIONS") == "true":
         return
     profile = os.environ.get("AWS_PROFILE", "")
-    if "sandbox" not in profile:
+    if "sandbox" not in profile and profile not in LAB_PROFILES:
         raise RuntimeError(
-            "AWS_PROFILE must be the personal sandbox profile (name contains 'sandbox'); "
+            f"AWS_PROFILE must contain 'sandbox' or be one of {LAB_PROFILES}; "
             "refusing to use default credentials"
         )
 

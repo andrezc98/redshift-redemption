@@ -16,6 +16,12 @@ def test_require_sandbox_accepts_sandbox_profile(monkeypatch):
     require_sandbox()
 
 
+def test_require_sandbox_accepts_lab_profile(monkeypatch):
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    monkeypatch.setenv("AWS_PROFILE", "morrislabs-poc")
+    require_sandbox()
+
+
 def test_target_parse_cluster_kwargs():
     t = Target.parse("cluster:rr-ra3")
     assert t.api_kwargs() == {"ClusterIdentifier": "rr-ra3", "Database": "tpcds", "DbUser": "awsuser"}

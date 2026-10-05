@@ -114,6 +114,7 @@ resource "aws_redshift_cluster" "ra3" {
   cluster_subnet_group_name    = aws_redshift_subnet_group.lab.name
   vpc_security_group_ids       = [aws_security_group.redshift.id]
   maintenance_track_name       = "current"
+  enhanced_vpc_routing         = true # endpoints in network.tf
   publicly_accessible          = false
   encrypted                    = true
   skip_final_snapshot          = true
@@ -134,6 +135,7 @@ resource "aws_redshift_cluster" "rg" {
   cluster_subnet_group_name    = aws_redshift_subnet_group.lab.name
   vpc_security_group_ids       = [aws_security_group.redshift.id]
   maintenance_track_name       = "current"
+  enhanced_vpc_routing         = true # endpoints in network.tf
   publicly_accessible          = false
   encrypted                    = true
   skip_final_snapshot          = true
@@ -148,16 +150,17 @@ resource "aws_redshiftserverless_namespace" "sls" {
 }
 
 resource "aws_redshiftserverless_workgroup" "sls" {
-  count               = var.serverless_enabled ? 1 : 0
-  workgroup_name      = "rr-sls"
-  namespace_name      = aws_redshiftserverless_namespace.sls[0].namespace_name
-  base_capacity       = 32
-  subnet_ids          = aws_subnet.private[*].id
-  security_group_ids  = [aws_security_group.redshift.id]
-  publicly_accessible = false
+  count                = var.serverless_enabled ? 1 : 0
+  workgroup_name       = "rr-sls"
+  namespace_name       = aws_redshiftserverless_namespace.sls[0].namespace_name
+  base_capacity        = 32
+  subnet_ids           = aws_subnet.private[*].id
+  security_group_ids   = [aws_security_group.redshift.id]
+  enhanced_vpc_routing = true
+  publicly_accessible  = false
 }
 
-# --- spend guard: Redshift only, so the ARMed lab in the same sandbox doesn't trip it ---
+# --- spend guard: Redshift only, so other work in the same account doesn't trip it ---
 resource "aws_budgets_budget" "rr" {
   name         = "rr-lab"
   budget_type  = "COST"

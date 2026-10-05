@@ -8,17 +8,20 @@ config: official docs / Terraform registry / GitHub releases of the day, pin
 what you verify, cite it in README. Every dispatched subagent gets this
 instruction verbatim.
 
-## AWS is the speaker's personal sandbox only
+## AWS is the Morris Labs POC account only (since 2026-10-05)
 The default credentials on this machine belong to a client. Every script that
 touches AWS calls `require_sandbox()` first (AWS_PROFILE must contain
-"sandbox"; the profile is `sura-sandbox`, region pinned to us-east-1). Never run
-`terraform apply`/`destroy`, restore snapshots, resize clusters or start a
-benchmark scenario without the speaker saying go. Clusters are PAUSED or
-DELETED between lab sessions; verify with `aws redshift describe-clusters`
-before leaving them unattended. The runner never runs terraform.
+"sandbox" or be in `LAB_PROFILES`; the lab profile is `morrislabs-poc` (SSO),
+region pinned to us-east-1). Terraform for `infra/` runs only through the
+manually dispatched `.github/workflows/infra.yml` (OIDC role `rr-gha` from
+`infra/bootstrap/`); dispatching apply/destroy needs the speaker's go, like
+restoring snapshots, resizing clusters or starting a benchmark scenario.
+Clusters are PAUSED or DELETED between lab sessions; verify with
+`aws redshift describe-clusters` before leaving them unattended. The runner
+never runs terraform.
 
 ## Budget
-Core lab estimate: USD 90–120 (spec §6). An AWS Budget alert at USD 80 exists
+Core lab estimate: USD 40–45 at 100 GB (spec §6). An AWS Budget alert at USD 80 exists
 before the first `apply`. `results/prices.md` is the only price source; fill it
 from the Price List API on the lab day.
 

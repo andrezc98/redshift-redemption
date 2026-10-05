@@ -3,9 +3,10 @@
 Todo desde la raíz del repo, en us-east-1:
 
 ```bash
-export AWS_PROFILE=sura-sandbox AWS_REGION=us-east-1
+export AWS_PROFILE=morrislabs-poc AWS_REGION=us-east-1          # aws sso login --profile morrislabs-poc
 rr() { PYTHONPATH="$PWD/runner" uv run --project runner rr "$@"; }   # PYTHONPATH: ver README, problemas conocidos
-tf() { terraform -chdir=infra "$@"; }
+tf() { terraform -chdir=infra "$@"; }                            # solo lectura (output); los apply van por GitHub Actions
+infra() { gh workflow run infra.yml "$@" && sleep 5 && gh run watch "$(gh run list -w infra.yml -L1 --json databaseId -q ".[0].databaseId")" --exit-status; }
 ```
 
 Cada paso marcado **GO** espera el "dale" del speaker. Al cerrar cada sesión:
@@ -13,8 +14,20 @@ clústeres pausados o borrados, verificado con `aws redshift describe-clusters`.
 
 ## 0. Antes de gastar
 1. Llenar `results/prices.md` con la API de precios del día.
-2. `cp infra/example.tfvars infra/terraform.tfvars` y poner el correo real en `alert_email`.
-3. **GO** `tf apply -var ra3_enabled=true` (crea también el budget). Confirmar el correo de suscripción del budget.
+2. Una sola vez, **GO**: bootstrap de GitHub Actions (bucket de estado + rol OIDC `rr-gha`) desde la laptop:
+   ```bash
+   echo "lab_account_id = \"$(aws sts get-caller-identity --query Account --output text)\"" > infra/bootstrap/terraform.tfvars
+   terraform -chdir=infra/bootstrap init && terraform -chdir=infra/bootstrap apply
+   gh api -X PUT repos/andrezc98/redshift-redemption/environments/lab
+   gh variable set AWS_ROLE_ARN --body "$(terraform -chdir=infra/bootstrap output -raw gha_role_arn)"
+   gh variable set TF_STATE_BUCKET --body "$(terraform -chdir=infra/bootstrap output -raw state_bucket)"
+   gh variable set ALERT_EMAIL --body "<correo real>"
+   tf init -backend-config="bucket=$(terraform -chdir=infra/bootstrap output -raw state_bucket)"
+   ```
+   Si la cuenta ya tiene el proveedor OIDC de GitHub, el apply falla con
+   `EntityAlreadyExists`: importarlo (comentario en `infra/bootstrap/main.tf`).
+3. `infra -f action=plan` y revisar el plan (artefacto del run).
+4. **GO** `infra -f action=apply` (crea `rr-ra3`, endpoints y el budget). Confirmar el correo de suscripción del budget.
 
 ## 1. Carga 100 GB, lago, permisos y snapshot (una sola sesión)
 Escala única del lab: 100 GB (decisión del 2026-10-05, para recortar horas).
@@ -48,7 +61,7 @@ aws redshift wait snapshot-available --snapshot-identifier rr-ra3-100gb
 
 ## 2. RG desde el mismo snapshot
 ```bash
-tf apply -var ra3_enabled=true -var rg_snapshot_id=rr-ra3-100gb   # GO
+infra -f action=apply -f rg_snapshot_id=rr-ra3-100gb            # GO
 rr query --target cluster:rr-ra3 --file sql/version.sql
 rr query --target cluster:rr-rg --file sql/version.sql
 ```
@@ -83,7 +96,8 @@ aws redshift restore-from-cluster-snapshot --cluster-identifier rr-drill \
   --iam-roles "$(tf output -raw role_arn)" \
   --cluster-parameter-group-name rr-params \
   --cluster-subnet-group-name rr-lab \
-  --vpc-security-group-ids "$(tf output -raw security_group_id)"  # GO (sin VPC por defecto: subnet group y SG del lab)
+  --vpc-security-group-ids "$(tf output -raw security_group_id)" \
+  --enhanced-vpc-routing                                          # GO (igual que rr-ra3/rr-rg) (sin VPC por defecto: subnet group y SG del lab)
 aws redshift wait cluster-available --cluster-identifier rr-drill
 date -u; aws redshift resize-cluster --cluster-identifier rr-drill --node-type rg.xlarge --number-of-nodes 2   # GO
 watch -n 30 aws redshift describe-resize --cluster-identifier rr-drill
@@ -96,7 +110,7 @@ fin total, y el skew por tabla de los dos CSV.
 
 ## 5. Serverless (contexto)
 ```bash
-tf apply -var ra3_enabled=true -var rg_snapshot_id=rr-ra3-100gb -var serverless_enabled=true   # GO
+infra -f action=apply -f rg_snapshot_id=rr-ra3-100gb -f serverless_enabled=true   # GO
 aws redshift-serverless restore-from-snapshot --namespace-name rr-sls --workgroup-name rr-sls \
   --snapshot-arn "$(aws redshift describe-cluster-snapshots --snapshot-identifier rr-ra3-100gb --query 'Snapshots[0].SnapshotArn' --output text)"
 until [ "$(aws redshift-serverless get-namespace --namespace-name rr-sls --query namespace.status --output text)" = AVAILABLE ]; do sleep 30; done
@@ -108,10 +122,10 @@ rr metrics --target workgroup:rr-sls --csv <csv>
 ```bash
 rr sql --target cluster:rr-ra3 --file sql/lake_drop.sql
 aws s3 rm "s3://$BUCKET/" --recursive
-tf destroy                                                      # GO
+infra -f action=destroy -f rg_snapshot_id=rr-ra3-100gb -f serverless_enabled=true   # GO (se niega si rr-lake aún tiene tablas)
 aws redshift delete-cluster-snapshot --snapshot-identifier rr-ra3-100gb   # cuando los resultados estén a salvo
 aws redshift describe-clusters --query 'Clusters[].ClusterIdentifier'   # esperado []
 aws redshift-serverless list-workgroups --query 'workgroups[].workgroupName'  # esperado []
 ```
-Si `tf destroy` falla porque la table bucket no está vacía, borrar las tablas
+Si el destroy falla porque la table bucket no está vacía, borrar las tablas
 que queden: `aws s3tables delete-table --table-bucket-arn "$(tf output -raw table_bucket_arn)" --namespace tpcds --name <t>`.

@@ -14,7 +14,8 @@ lado, en el tamaño de clúster que la mayoría de los equipos opera.
 
 - Runner: Python 3.13, boto3 1.43.102, pytest 9.1.1 (uv.lock, 2026-09-24)
 - Consultas y DDL: awslabs/amazon-redshift-utils `CloudDataWarehouseBenchmark/Cloud-DWB-Derived-from-TPCDS/1TB` @ f208c11 (sin modificar, `sql/vendor/`)
-- Terraform >= 1.15, hashicorp/aws 6.66.0 (lock), estado local; VPC propia (la sandbox no tiene VPC por defecto en us-east-1)
+- Terraform >= 1.15 (1.15.2 en CI), hashicorp/aws 6.66.0 (lock), estado remoto en S3 (`infra/bootstrap/`); apply/destroy solo vía GitHub Actions con OIDC (`.github/workflows/infra.yml`; acciones verificadas el 2026-10-05: checkout v7.0.1, configure-aws-credentials v6.3.0, setup-terraform v4.0.1, upload-artifact v7.0.1)
+- Red: VPC propia, enhanced VPC routing activado, endpoints S3 (gateway), Glue, Lake Formation y S3 Tables (https://docs.aws.amazon.com/redshift/latest/mgmt/spectrum-enhanced-vpc.html, leído el 2026-10-05)
 
 ## Problemas conocidos
 
