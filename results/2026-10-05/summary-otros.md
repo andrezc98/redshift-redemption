@@ -40,13 +40,31 @@ Spectrum.
   - El formato en S3 es muy distinto: Parquet `store_sales` quedó en **4
     archivos de ≈3,8 GB** (uno por slice del clúster que lo escribió con CETAS);
     Iceberg `store_sales` en **28 archivos de ≈480 MB**.
-  - Hipótesis (sin probar): el motor integrado de RG reparte la lectura entre
-    pocos archivos enormes en solo 2 nodos, mientras Spectrum la reparte en su
-    propia flota. Prueba pendiente: reescribir el Parquet en archivos de
-    ≈500 MB y repetir `rr lake --variant parquet` en ambos.
+  - Causa del tamaño: `CREATE EXTERNAL TABLE AS` escribe un archivo por slice
+    con tope por defecto de 6.200 MB (`write.maxfilesize.mb`, documentación de
+    CREATE EXTERNAL TABLE, leída el 2026-10-05).
+  - **Prueba (20:07 UTC):** `pq.store_sales` reescrito con
+    `'write.maxfilesize.mb'='480'` → 31 archivos de ≈496 MB (mismos 15.379 MB),
+    y `rr lake --variant parquet` repetido en ambos clústeres en paralelo
+    (`rr-ra3-lake-parquet-df42`, `rr-rg-lake-parquet-f7c8`, sin exclusiones).
+
+    | Parquet `store_sales` | RA3 total (s) | RG total (s) | RG frente a RA3 |
+    |---|---|---|---|
+    | 4 archivos de ≈3,8 GB | 31.7 | 50.6 | 0.82x |
+    | 31 archivos de ≈0,5 GB | 46.5 | 36.3 | 1.76x |
+
+    - RG mejora con archivos chicos: `lq3` 18,0 → 12,7 s y `lqst` 19,2 → 12,5 s
+      (≈30 %). El tamaño de archivo pesa en el motor integrado de RG.
+    - Pero RG sigue más lento en esas dos consultas que con los mismos datos en
+      Iceberg (`lq3` ≈12,7 s en Parquet frente a ≈2,4 s en Iceberg): el tamaño
+      explica una parte de la brecha, no toda.
+    - RA3 empeoró con los archivos chicos (31,7 → 46,5 s; `lq42` 3,9 → 8,1 s):
+      Spectrum manejaba bien pocos archivos grandes. Es una sola repetición, así
+      que puede haber variación entre corridas.
+    - El 1.76x mezcla ambos efectos; lo sólido es la dirección, no el número.
   - Mensaje para el slide, con lo verificado: con el mismo plan, el resultado
-    del lago en RG depende de cómo están escritos los archivos, no solo del
-    formato.
+    del lago depende de cómo están escritos los archivos, y el mismo cambio de
+    formato ayuda a un motor (RG) y perjudica al otro (Spectrum en RA3).
 - **Iceberg en RG:** la primera pasada es lenta (hasta 27 s, frente a ≈2 s
   después) y luego RG es mucho más rápido que RA3: RG cachea los datos del lago
   tras la primera lectura. El 1.87x excluye la pasada de calentamiento, igual
