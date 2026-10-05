@@ -1,0 +1,5 @@
+run_id,scenario,stream,pass_no,name,label,status,api_seconds,error
+b9f7,elt,0,1,ecopy,b9f7.e1.ecopy,FINISHED,41.073311434,
+b9f7,elt,0,1,ectas,b9f7.e1.ectas,FINISHED,8.719281208,
+b9f7,elt,0,2,ecopy,b9f7.e2.ecopy,FINISHED,40.871261779,
+b9f7,elt,0,2,ectas,b9f7.e2.ectas,FINISHED,8.426462839,

@@ -86,7 +86,7 @@ rr query --target cluster:rr-rg --file sql/version.sql
 ```
 Si las versiones difieren, anotarlo: `rr report` lo muestra en el encabezado.
 
-## 3. Escenarios (primero rr-ra3, luego rr-rg)
+## 3. Escenarios (rr-ra3 y rr-rg en paralelo, una terminal por clúster)
 ```bash
 aws redshift resume-cluster --cluster-identifier <id> 2>/dev/null; aws redshift wait cluster-available --cluster-identifier <id>
 rr power --target cluster:<id>                                  # GO
@@ -110,38 +110,21 @@ la sección "Excluidas de la comparación" antes de llevar un número a un slide
 
 ## 4. Simulacro de migración (elastic resize)
 ```bash
-aws redshift restore-from-cluster-snapshot --cluster-identifier rr-drill \
-  --snapshot-identifier rr-ra3-100gb --node-type ra3.xlplus --number-of-nodes 2 \
-  --iam-roles "$(tf output -raw role_arn)" \
-  --cluster-parameter-group-name rr-params \
-  --cluster-subnet-group-name rr-lab \
-  --vpc-security-group-ids "$(tf output -raw security_group_id)" \
-  --enhanced-vpc-routing                                          # GO (igual que rr-ra3/rr-rg) (sin VPC por defecto: subnet group y SG del lab)
-aws redshift wait cluster-available --cluster-identifier rr-drill
-date -u; aws redshift resize-cluster --cluster-identifier rr-drill --node-type rg.xlarge --number-of-nodes 2   # GO
-watch -n 30 aws redshift describe-resize --cluster-identifier rr-drill
-rr query --target cluster:rr-drill --file sql/skew.sql > results/<fecha>/skew-drill.csv
-rr query --target cluster:rr-rg --file sql/skew.sql > results/<fecha>/skew-rg.csv
-aws redshift delete-cluster --cluster-identifier rr-drill --skip-final-cluster-snapshot
+scripts/drill.sh                                                # GO (crea rr-drill: +USD 2.17/h hasta que el script lo borra)
 ```
+Restaura `rr-ra3-100gb` como `rr-drill` (2x ra3.xlplus, mismo VPC, routing y
+parámetros), hace elastic resize a 2x rg.xlarge y cada 30 s registra el estado
+del resize y si una escritura de prueba funciona (`drill-log.csv`): la ventana de
+solo lectura sale medida, no estimada. Luego guarda `skew-drill.csv` y
+`skew-rg.csv` (reanuda rr-rg solo si estaba pausado) y borra rr-drill.
 Anotar en `results/<fecha>/drill.md`: inicio, fin de la ventana de solo lectura,
 fin total, y el skew por tabla de los dos CSV.
 
-## 5. Serverless (contexto)
-```bash
-infra -f action=apply -f rg_snapshot_id=rr-ra3-100gb -f serverless_enabled=true   # GO
-aws redshift-serverless restore-from-snapshot --namespace-name rr-sls --workgroup-name rr-sls \
-  --snapshot-arn "$(aws redshift describe-cluster-snapshots --snapshot-identifier rr-ra3-100gb --query 'Snapshots[0].SnapshotArn' --output text)"
-until [ "$(aws redshift-serverless get-namespace --namespace-name rr-sls --query namespace.status --output text)" = AVAILABLE ]; do sleep 30; done
-rr power --target workgroup:rr-sls --passes 2                   # GO
-rr metrics --target workgroup:rr-sls --csv <csv>
-```
-
-## 6. Cierre (mismo día)
+## 5. Cierre (mismo día)
 ```bash
 rr sql --target cluster:rr-ra3 --file sql/lake_drop.sql
 aws s3 rm "s3://$BUCKET/" --recursive
-infra -f action=destroy -f rg_snapshot_id=rr-ra3-100gb -f serverless_enabled=true   # GO (se niega si rr-lake aún tiene tablas)
+infra -f action=destroy -f rg_snapshot_id=rr-ra3-100gb   # GO (se niega si rr-lake aún tiene tablas)
 aws redshift delete-cluster-snapshot --snapshot-identifier rr-ra3-100gb   # cuando los resultados estén a salvo
 aws redshift describe-clusters --query 'Clusters[].ClusterIdentifier'   # esperado []
 aws redshift-serverless list-workgroups --query 'workgroups[].workgroupName'  # esperado []

@@ -1,0 +1,5 @@
+run_id,scenario,stream,pass_no,name,label,status,api_seconds,error,elapsed_s,queue_s,exec_s,compile_s,planning_s,scanned_bytes,redshift_version,cache_hit,compute_type,server_status
+b9f7,elt,0,1,ecopy,b9f7.e1.ecopy,FINISHED,41.073311434,,40.353138,0.0,39.900205,0.076092,0.004139,0,1.0.434008,False,primary,success
+b9f7,elt,0,1,ectas,b9f7.e1.ectas,FINISHED,8.719281208,,8.219405,0.0,7.353668,0.470613,0.027595,0,1.0.434008,False,primary,success
+b9f7,elt,0,2,ecopy,b9f7.e2.ecopy,FINISHED,40.871261779,,40.130273,0.0,39.795446,0.001121,0.004144,0,1.0.434008,False,primary,success
+b9f7,elt,0,2,ectas,b9f7.e2.ectas,FINISHED,8.426462839,,7.7445,0.0,7.361593,0.226877,0.026478,0,1.0.434008,False,primary,success
