@@ -22,3 +22,6 @@ results/raw/
 
 # superpowers SDD scratch
 .superpowers/
+
+# office lock files
+~$*
