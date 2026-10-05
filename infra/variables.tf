@@ -18,3 +18,9 @@ variable "serverless_enabled" {
   type    = bool
   default = false
 }
+
+variable "serverless_rpu" {
+  type        = number
+  default     = 4
+  description = "Base and max RPU of the Serverless workgroup (4, or multiples of 8 up to 512)"
+}

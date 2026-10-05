@@ -149,14 +149,23 @@ resource "aws_redshiftserverless_namespace" "sls" {
 }
 
 resource "aws_redshiftserverless_workgroup" "sls" {
-  count                = var.serverless_enabled ? 1 : 0
-  workgroup_name       = "rr-sls"
-  namespace_name       = aws_redshiftserverless_namespace.sls[0].namespace_name
-  base_capacity        = 32
+  count          = var.serverless_enabled ? 1 : 0
+  workgroup_name = "rr-sls"
+  namespace_name = aws_redshiftserverless_namespace.sls[0].namespace_name
+  # Pinned for a like-for-like run (speaker's call, 2026-10-05): 4 RPU = 64 GB, the
+  # memory of 2x rg.xlarge, at USD 1.50/h vs 1.52/h. base = max and the AI-driven
+  # price-performance target off, so capacity cannot change mid-test. Base 4..512 and
+  # 1 RPU = 16 GB per serverless-capacity.html (read 2026-10-05).
+  base_capacity        = var.serverless_rpu
+  max_capacity         = var.serverless_rpu
   subnet_ids           = aws_subnet.private[*].id
   security_group_ids   = [aws_security_group.redshift.id]
   enhanced_vpc_routing = true
   publicly_accessible  = false
+
+  price_performance_target {
+    enabled = false
+  }
 }
 
 # --- spend guard: Redshift only, so other work in the same account doesn't trip it ---
