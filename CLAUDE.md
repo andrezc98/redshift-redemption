@@ -35,9 +35,9 @@ Plan: `docs/superpowers/plans/2026-09-24-redshift-redemption.md`.
 Slides (speaker's call, 2026-10-05): we deliver the filled deck
 `slides/redshift-redemption.pptx`, built by `slides/build_deck.py` from the
 community template in `slides/evento/` (event rules in
-`slides/evento/recomendaciones-evento.pdf`), with `slides/contenido.md` as the
-text source of truth and assets in `slides/assets/`. Edit contenido.md and the
-build script together, then rebuild; never hand-edit the .pptx.
+`slides/evento/recomendaciones-evento.pdf`), with all wording in the build script and
+`slides/contenido.md` generated from the built deck; assets in `slides/assets/`.
+Change the script and rebuild; never hand-edit the .pptx or contenido.md.
 
 ## Framing rule
 Verify, don't attack: AWS claims are promises we test (where they hold, where

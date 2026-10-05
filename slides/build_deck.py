@@ -2,7 +2,7 @@
 
 Structure (slide copies) is made with the pptx skill's add_slide.py/clean.py,
 then python-pptx fills each slide. Numbers are read from results/, never typed.
-Text source of truth: slides/contenido.md.
+Wording lives here; slides/contenido.md is generated from the built deck.
 
 Usage: python slides/build_deck.py <pptx-skill-dir>
 Needs: python-pptx, defusedxml, lxml (any venv).
@@ -312,6 +312,17 @@ def build_structure(skill: Path, tmp: Path) -> Path:
 
 
 # ---------------------------------------------------------------- content
+def pair_stat(slide, x, y, w, label, a, b, unit="s", nd=1, note="menos tiempo es mejor"):
+    """RA3 vs RG side by side with what the numbers mean."""
+    textbox(slide, x, y, w, 0.5, [label], size=20, color=SOFT)
+    textbox(slide, x, y + 0.55, w / 2, 1.0, [f"{es(a, nd)} {unit}"], size=40, color=RA3C, bold=True)
+    textbox(slide, x + w / 2, y + 0.55, w / 2, 1.0, [f"{es(b, nd)} {unit}"], size=40, color=ACCENT, bold=True)
+    textbox(slide, x, y + 1.4, w / 2, 0.5, ["RA3"], size=18, color=RA3C)
+    textbox(slide, x + w / 2, y + 1.4, w / 2, 0.5, ["RG"], size=18, color=ACCENT)
+    if note:
+        textbox(slide, x, y + 1.85, w, 0.5, [note], size=16, color=MUTED)
+
+
 def fill(prs):
     S = prs.slides
     ps, pr, cls = power_summary(), power_rows(), classes()
@@ -321,270 +332,275 @@ def fill(prs):
     pq_runs = [("rr-ra3-lake-parquet-68e7", "rr-rg-lake-parquet-dd2f"), ("rr-ra3-lake-parquet-df42", "rr-rg-lake-parquet-f7c8")]
     pq1, pq2 = [(tot(a), tot(g), stats.geomean(stats.speedups(per_q(a), per_q(g)).values())) for a, g in pq_runs]
     q96 = next(r for r in pr if r[0] == "query96")
+    geo = es(float(ps["geo"]), 2)
 
     # 1 cover
     s = S[0]
     set_title(s, "Redshift Redemption", 72)
     textbox(s, X0, Y0 + 0.4, 9.6, 4.5, ["Los nuevos nodos RG: **¿migrar o no migrar?**",
-                                         "Andrés Zeballos · Solutions Architect, phData",
-                                         "100 GB TPC-DS · RA3 frente a RG · 2026-10-05"], size=30, space=22)
-    stat(s, 11.4, Y0 + 0.5, 5.4, f"{es(float(ps['geo']), 2)}x", "más rápido en nuestro lab (media de 20 consultas)", size=110)
-    notes(s, "Buenas tardes. Hoy no vengo a contarles lo que dice el anuncio de AWS; vengo a contarles qué pasó cuando lo medí. Ese 1,90x es uno de los números de hoy, y al final van a ver que no es el único que importa.")
+                                         "Andrés Zeballos · Solutions Architect en phData",
+                                         "Medido con 100 GB de TPC-DS · octubre de 2026"], size=30, space=22)
+    stat(s, 11.4, Y0 + 0.5, 5.4, f"{geo}x", "más rápido, en promedio, en nuestras pruebas", size=110)
+    notes(s, "Buenas tardes. Hoy no vengo a repetir el anuncio de AWS: vengo a contarles qué pasó cuando lo puse a prueba. Ese 1,90 es uno de los resultados, y al final van a ver que no es el único que importa.")
 
     # 2 bio
     s = S[1]
     set_title(s, "Quién soy")
-    items = [("De Arequipa", "Solutions Architect en phData, casi siempre con AWS"),
-             ("Trayectoria", "Redes → infraestructura → Kubernetes → datos → agentes de IA"),
-             ("Comunidad", "AWS Golden Jacket · colaboré en las nuevas microcredenciales de análisis de datos de AWS"),
-             ("Mi regla", "Cada charla sale de un laboratorio que armo y publico para que lo repitas")]
-    for i, (t, b) in enumerate(items):
-        card(s, X0 + (i % 2) * 7.85, Y0 + (i // 2) * 2.95, 7.55, 2.65, t, b, size=22)
-    notes(s, "Me gusta probar las cosas antes de recomendarlas. Esta charla es eso: un laboratorio que armé esta semana, con su costo y sus errores incluidos.")
+    textbox(s, X0, Y0 + 0.1, 9.9, 5.6, [
+        "Soy de Arequipa y trabajo como Solutions Architect en phData, casi siempre con AWS.",
+        "Empecé en redes y fui pasando por infraestructura, Kubernetes y datos. Hoy ando metido con agentes de IA.",
+        "Tengo el Golden Jacket de AWS y hace poco me invitaron a ayudar a crear las nuevas microcredenciales de análisis de datos."],
+        size=25, space=20)
+    card(s, 11.4, Y0 + 0.2, 5.0, 3.6, "Probar antes de recomendar",
+         "Cada charla que doy sale de un laboratorio que armo y después publico para que cualquiera lo repita.",
+         size=21, title_size=28, title_color=ACCENT)
+    notes(s, "Me gusta probar las cosas antes de recomendarlas. Esta charla es justamente eso: un laboratorio que armé esta semana, con lo que costó y con los errores que me encontré en el camino.")
 
     # 3 agenda
-    set_agenda(S[2], ["Qué cambió de RA3 a RG", "Cómo lo medimos", "Warehouse: potencia, concurrencia y costo",
-                      "Data lake: Iceberg, Parquet y Spectrum", "La migración y sus trampas", "Demo"])
-    notes(S[2], "Cinco temas y una demo. Al final, una respuesta concreta a la pregunta del título, y tres preguntas de Kahoot.")
+    set_agenda(S[2], ["Qué cambia con RG", "Cómo lo medimos", "Warehouse: velocidad, concurrencia y costo",
+                      "Data lake: Iceberg, Parquet y Spectrum", "La migración y lo que nadie te cuenta", "Demo"])
+    notes(S[2], "Cinco temas y una demo. Al final les doy una respuesta concreta a la pregunta del título, y cerramos con tres preguntas de Kahoot.")
 
     # 4 question
     s = S[3]
     set_title(s, "¿Migro o no migro?")
-    card(s, X0, Y0, 4.6, 2.6, "RA3", "Lo que tienes hoy", size=24, title_size=54, title_color=RA3C)
+    card(s, X0, Y0, 4.6, 2.6, "RA3", "Lo que usas hoy", size=24, title_size=54, title_color=RA3C)
     textbox(s, X0 + 4.6, Y0 + 0.5, 1.4, 1.6, ["?"], size=88, color=ORANGE, bold=True, align=PP_ALIGN.CENTER)
-    card(s, X0 + 6.0, Y0, 4.6, 2.6, "RG", "Graviton, desde mayo de 2026", size=24, title_size=54, title_color=ACCENT)
-    textbox(s, X0, Y0 + 3.1, 15.6, 2.8, ["Si administras un Redshift con RA3, o pagas su factura, la pregunta llegó sola.",
-                                          "Hoy tomamos las promesas de AWS y las ponemos a prueba: **dónde se cumplen y dónde dependen de tu carga.**"],
+    card(s, X0 + 6.0, Y0, 4.6, 2.6, "RG", "Con Graviton, desde mayo de 2026", size=24, title_size=54, title_color=ACCENT)
+    textbox(s, X0, Y0 + 3.1, 15.2, 2.8, ["Si tienes un Redshift con nodos RA3, o eres quien paga la factura, seguramente ya te hiciste esta pregunta.",
+                                          "Hoy revisamos lo que anunció AWS con pruebas propias: **en qué se cumple y en qué depende de cómo usas Redshift.**"],
             size=26, space=16)
-    notes(s, "La idea no es desmentir a nadie. AWS publica sus números; nosotros los verificamos en el tamaño de clúster que la mayoría opera. Cuando se cumplen, lo decimos; cuando dependen de algo, explicamos de qué.")
+    notes(s, "La idea no es desmentir a nadie. AWS publicó sus números y yo los revisé en un clúster chico, como el que tienen muchos equipos. Donde se cumplen, lo digo; donde dependen de algo, les explico de qué.")
 
     # 5 transition
-    set_transition(S[4], "QUÉ", "CAMBIÓ")
+    set_transition(S[4], "QUÉ", "CAMBIA")
     notes(S[4], "Primero, qué es exactamente un nodo RG y en qué se diferencia de RA3.")
 
     # 6 what's new
     s = S[5]
     set_title(s, "Qué trae RG")
-    cards = [("Graviton", "Instancias basadas en los procesadores Arm de AWS"),
-             ("Motor de lago integrado", "Las consultas al lago corren en el propio clúster; RA3 usa Redshift Spectrum, una flota aparte"),
-             ("Sin cargo por TB escaneado", "RA3 paga USD 5 por TB que lee Spectrum; RG no tiene ese cargo"),
-             ("Lo que no cambia", "Mismo motor de Redshift y mismo almacenamiento administrado (USD 0,024 por GB-mes)")]
+    cards = [("Procesadores Graviton", "Los chips Arm diseñados por AWS"),
+             ("El data lake sin Spectrum", "RG consulta los datos en S3 con sus propios nodos; RA3 depende de Spectrum, un servicio aparte"),
+             ("Sin cobro por TB leído", "En RA3, Spectrum cobra USD 5 por cada TB que lee; en RG ese cobro no existe"),
+             ("Lo que se mantiene", "El mismo Redshift de siempre y el mismo almacenamiento administrado (USD 0,024 por GB al mes)")]
     for i, (t, b) in enumerate(cards):
         card(s, X0 + (i % 2) * 7.85, Y0 + (i // 2) * 2.95, 7.55, 2.65, t, b, size=22,
              title_color=ACCENT if i < 3 else RA3C)
-    notes(s, "Esto es importante para entender los resultados del lago: cuando comparamos RA3 con RG en el lago no comparamos solo procesadores, comparamos dos motores distintos. Por eso siempre hablo de motor más chip y nunca de solo el chip. Fuente: documentación de Redshift, Amazon Redshift provisioned clusters.")
+    notes(s, "Esto es clave para entender los resultados del data lake: cuando comparamos RA3 con RG ahí, no comparamos solo procesadores, comparamos dos formas distintas de leer S3. Por eso hablo del chip y de cómo se leen los datos, nunca del chip solo. Fuente: documentación de Redshift, Amazon Redshift provisioned clusters.")
 
     # 7 sizes and prices
     s = S[6]
-    set_title(s, "Cuatro tamaños, 30 % menos por vCPU", 50)
-    rows = [["RA3", "vCPU", "USD/h", "→", "RG", "vCPU", "USD/h", "USD por vCPU-h"],
+    set_title(s, "Cuatro tamaños y 30 % menos por vCPU", 50)
+    rows = [["RA3", "vCPU", "USD/hora", "", "RG", "vCPU", "USD/hora", "USD por vCPU y hora"],
             ["—", "", "", "", "rg.large", "2", "0,3801", "0,190"],
-            ["ra3.xlplus", "4", "1,086", "1 : 1", "rg.xlarge", "4", "0,7602", "0,272 → 0,190"],
-            ["ra3.4xlarge", "12", "3,26", "4 → 3", "rg.4xlarge", "16", "3,04267", "0,272 → 0,190"],
+            ["ra3.xlplus", "4", "1,086", "1 : 1", "rg.xlarge", "4", "0,7602", "de 0,272 a 0,190"],
+            ["ra3.4xlarge", "12", "3,26", "4 : 3", "rg.4xlarge", "16", "3,04267", "de 0,272 a 0,190"],
             ["—", "", "", "", "rg.12xlarge", "48", "9,128", "0,190"]]
-    table(s, X0, Y0, 15.2, rows, [2.4, 1.1, 1.4, 1.2, 2.5, 1.1, 1.8, 3.7], size=21, row_h=0.72, hl_rows=(3,))
-    textbox(s, X0, Y0 + 4.0, 15.6, 1.6, ["**4 × ra3.4xlarge = 3 × rg.4xlarge = 48 vCPU** → USD 13,04/h frente a 9,13/h"],
+    table(s, X0, Y0, 15.2, rows, [2.4, 1.1, 1.5, 1.0, 2.5, 1.1, 1.6, 4.0], size=21, row_h=0.72, hl_rows=(3,))
+    textbox(s, X0, Y0 + 4.0, 15.2, 1.6, ["**4 nodos ra3.4xlarge equivalen a 3 rg.4xlarge** (48 vCPU en total): USD 13,04 frente a 9,13 por hora"],
             size=26, color=WHITE)
-    textbox(s, X0, Y0 + 5.15, 15.6, 0.6, ["vCPU: documentación «Node type details». Precios on-demand us-east-1, Price List API (results/prices.md y spec)."],
+    textbox(s, X0, Y0 + 5.15, 15.2, 0.6, ["vCPU: documentación de Redshift («Node type details»). Precios on-demand en us-east-1, Price List API."],
             size=16, color=MUTED)
-    notes(s, "El 30 % por vCPU se cumple al centavo: 1,086 entre 4 vCPU contra 0,7602 entre 4. Ojo con el 4xlarge: un ra3.4xlarge tiene 12 vCPU y un rg.4xlarge tiene 16. AWS recomienda pasar 4 nodos RA3 a 3 nodos RG; si migras 1 a 1 en ese tamaño compras un tercio más de capacidad de la que tenías.")
+    notes(s, "El 30 % por vCPU se cumple al centavo: 1,086 dividido entre 4 vCPU contra 0,7602 entre 4. Ojo con el tamaño 4xlarge: un ra3.4xlarge tiene 12 vCPU y un rg.4xlarge tiene 16, por eso AWS recomienda pasar de 4 nodos a 3. Si migras uno a uno en ese tamaño, terminas pagando un tercio más de capacidad de la que tenías.")
 
-    # 8 promises
+    # 8 AWS's announcement
     s = S[7]
-    set_title(s, "Lo que promete AWS")
-    proms = [("Hasta 2,2x", "más rápido en el warehouse"), ("Hasta 2,4x", "en el data lake (Iceberg; 1,5x en Parquet)"),
-             ("−30 %", "por vCPU"), ("Sin cargo", "de Spectrum por TB escaneado")]
+    set_title(s, "Lo que anunció AWS")
+    proms = [("Hasta 2,2x", "más rápido en las consultas del warehouse"), ("Hasta 2,4x", "en el data lake con Iceberg (1,5x con Parquet)"),
+             ("−30 %", "en el precio por vCPU"), ("USD 0", "por TB leído desde el data lake")]
     for i, (t, b) in enumerate(proms):
         card(s, X0 + i * 3.88, Y0, 3.65, 3.0, t, b, size=22, title_size=40, title_color=ACCENT)
-    textbox(s, X0, Y0 + 3.5, 15.2, 1.2, ["AWS midió TPC-DS y TPC-H a **10 TB en rg.4xlarge**. Nosotros: 100 GB en 2 × xlarge."],
+    textbox(s, X0, Y0 + 3.5, 15.2, 1.2, ["AWS lo midió con TPC-DS y TPC-H a **10 TB en nodos rg.4xlarge**. Nosotros, con 100 GB en un clúster de 2 nodos xlarge."],
             size=24, color=WHITE)
-    textbox(s, X0, Y0 + 5.15, 15.6, 0.6, ["Fuente: blog de AWS Big Data «Meet Amazon Redshift RG…», 2026-05-19."], size=16, color=MUTED)
-    notes(s, "Estas son las cuatro promesas que vamos a probar. Fíjense en el pie: AWS midió 10 TB en nodos 4xlarge. Yo medí el clúster que la mayoría de los equipos opera de verdad.")
+    textbox(s, X0, Y0 + 5.15, 15.2, 0.6, ["Fuente: blog de AWS Big Data «Meet Amazon Redshift RG…», 19 de mayo de 2026."], size=16, color=MUTED)
+    notes(s, "Estos son los cuatro números del anuncio, y son los que vamos a revisar. Fíjense en la última línea: AWS midió 10 TB en nodos grandes. Yo medí un clúster chico, más parecido al que tienen muchos equipos.")
 
     # 9 transition
     set_transition(S[8], "CÓMO LO", "MEDIMOS")
-    notes(S[8], "Antes de mostrar un solo número, cómo lo obtuve, porque un benchmark sin método es una opinión con decimales.")
+    notes(S[8], "Antes de mostrar un solo número, les cuento cómo lo obtuve, porque una comparación sin método es solo una opinión con decimales.")
 
     # 10 architecture
     s = S[9]
     set_title(s, "El laboratorio")
     picture(s, ROOT / "slides/assets/arquitectura-lab.png", X0, Y0 + 0.05, 15.6, 5.75)
-    notes(s, "Una VPC propia con enhanced VPC routing y endpoints para S3, Glue, Lake Formation y S3 Tables. RA3 con 2 nodos ra3.xlplus; RG con 2 nodos rg.xlarge restaurado del mismo snapshot, así que los dos clústeres tienen exactamente los mismos datos. El lago en S3: Iceberg y Parquet registrados en Glue. RA3 lee el lago con la flota de Spectrum, fuera de la VPC; RG con su motor integrado, desde la VPC por los endpoints. Las consultas las lanza un runner en Python por la Data API, y la infraestructura la crea GitHub Actions con OIDC, sin llaves guardadas en ningún lado.")
+    notes(s, "Armé una VPC propia, con enhanced VPC routing y endpoints para S3, Glue, Lake Formation y S3 Tables. El clúster RA3 tiene 2 nodos ra3.xlplus, y el RG, 2 nodos rg.xlarge, creado a partir del mismo snapshot: los dos tienen exactamente los mismos datos. El data lake está en S3, con tablas Iceberg y Parquet registradas en Glue. RA3 lee esos datos con Spectrum, que corre fuera de la VPC; RG los lee con sus propios nodos, desde la VPC. Las consultas las lanza un programa en Python a través de la Data API, y la infraestructura la crea GitHub Actions con OIDC, sin claves guardadas en ningún lado.")
 
     # 11 method
     s = S[10]
-    set_title(s, "Un método justo")
-    textbox(s, X0, Y0, 15.6, 5.8, ["Mismo snapshot y misma versión de Redshift (1.0.434008) en los dos clústeres",
-                                    "Caché de resultados apagada y escalado de concurrencia en 0",
-                                    "Tiempos medidos en el servidor (SYS_QUERY_HISTORY), no en mi laptop",
-                                    "Mediana por consulta, sin la pasada de calentamiento",
-                                    "**Una corrida con caché o escalado se invalida sola y no se reporta. Hoy: ninguna.**"],
-            size=26, bullets=True, space=20)
-    notes(s, "Lo más importante es el último punto: el runner revisa cada consulta y si alguna usó la caché de resultados, la corrida entera se descarta. Ninguna se descartó hoy.")
+    set_title(s, "Una comparación justa")
+    textbox(s, X0, Y0, 15.2, 5.8, ["Los dos clústeres arrancan del mismo snapshot y con la misma versión de Redshift (1.0.434008)",
+                                    "Sin caché de resultados y sin escalado automático de concurrencia",
+                                    "Los tiempos los mide Redshift (SYS_QUERY_HISTORY), no mi computadora",
+                                    "Cada consulta se repite tres veces: la primera no cuenta y nos quedamos con la mediana",
+                                    "**Si alguna consulta usa la caché, la prueba entera se descarta. En este laboratorio no se descartó ninguna.**"],
+            size=25, bullets=True, space=20)
+    notes(s, "Lo más importante es el último punto: el programa revisa cada consulta y, si alguna usó la caché de resultados, descarta la prueba completa. No hubo que descartar ninguna.")
 
-    # 12 what we did not measure
+    # 12 what we did not test
     s = S[11]
-    set_title(s, "Lo que no medimos")
-    outs = [("100 GB, no 10 TB", "Con este volumen pesan más los costos fijos de cada consulta"),
-            ("2 nodos xlarge", "No medimos 4xlarge ni 12xlarge"),
-            ("Sin Serverless", "Lo vemos solo con documentación y precios"),
-            ("Sin S3 Tables", "Más adelante, el porqué")]
+    set_title(s, "Lo que no probamos")
+    outs = [("100 GB, no 10 TB", "Con pocos datos, el costo fijo de cada consulta pesa más"),
+            ("Solo el tamaño xlarge", "No probamos 4xlarge ni 12xlarge"),
+            ("Serverless", "Lo comentamos con precios y documentación, sin pruebas propias"),
+            ("S3 Tables", "No lo pudimos probar; más adelante les cuento por qué")]
     for i, (t, b) in enumerate(outs):
         card(s, X0 + (i % 2) * 7.85, Y0 + (i // 2) * 2.95, 7.55, 2.65, t, b, size=22, title_color=ORANGE)
-    notes(s, "Prefiero decirlo al principio. Con 100 GB los datos calientes caben en buena parte en memoria, y eso reduce la ventaja de RG en escaneos grandes. Si aun así vemos ventaja, es una buena señal; con más datos esperaría que la brecha de scan crezca, pero no lo medí.")
+    notes(s, "Prefiero decirlo desde el principio. Con 100 GB, buena parte de los datos que se consultan cabe en memoria, y eso reduce la ventaja de RG cuando hay que leer mucho. Si aun así RG gana, es buena señal; con más datos esperaría una diferencia mayor, pero eso no lo medí.")
 
     # 13 transition
     set_transition(S[12], "WAREHOUSE")
-    notes(S[12], "Empecemos por lo que hace todo warehouse: consultas sobre tablas propias.")
+    notes(S[12], "Empecemos por lo básico de cualquier warehouse: consultas sobre sus propias tablas.")
 
-    # 14 power chart
+    # 14 performance chart
     s = S[13]
-    set_title(s, f"{es(float(ps['geo']), 2)}x más rápido")
+    set_title(s, f"RG fue {geo}x más rápido")
     srt = sorted(pr, key=lambda r: -r[3])
-    bar_chart(s, X0 - 0.1, Y0 - 0.1, 10.6, 6.2, [r[0] for r in srt], [("Aceleración RG", [r[3] for r in srt])],
+    bar_chart(s, X0 - 0.1, Y0 - 0.1, 10.2, 6.2, [r[0] for r in srt], [("Aceleración RG", [r[3] for r in srt])],
               [ACCENT], horizontal=True, fmt='0.00"x"', label_size=13, axis_size=13, gap=35, label_fn=lambda v: es(v, 2) + "x",
               point_colors=[ACCENT if cls[r[0]] == "scan" else ORANGE for r in srt])
-    lg = textbox(s, 11.2, Y0 + 0.1, 5.6, 0.5, ["■ scan"], size=20, color=ACCENT).text_frame.paragraphs[0]
-    _runs(lg, "     ■ cpu", 20, ORANGE)
-    stat(s, 11.2, Y0 + 0.8, 5.6, f"{es(float(ps['tot'][0]))} → {es(float(ps['tot'][1]))} s", "tiempo total de las 20 consultas", size=40, color=WHITE)
-    stat(s, 11.2, Y0 + 3.4, 5.6, f"{es(float(ps['p50'][0]), 2)} → {es(float(ps['p50'][1]), 2)} s", "mediana (p50) por consulta", size=40, color=WHITE)
-    notes(s, f"Veinte consultas, cada una tres veces, la primera de calentamiento. RG fue más rápido en las veinte. La que más ganó, query48, 3,58 veces; la que menos, query57, 1,08 veces. La media geométrica, que es la forma justa de promediar aceleraciones, da {es(float(ps['geo']), 2)}x. En azul las consultas de scan, en naranja las de CPU.")
+    lg = textbox(s, 11.1, Y0 + 0.05, 5.8, 0.9, ["Cuántas veces más rápido fue RG en cada consulta"], size=17, color=SOFT).text_frame
+    p = lg.add_paragraph()
+    _runs(p, "■ lectura   ", 17, ACCENT)
+    _runs(p, "■ cálculo", 17, ORANGE)
+    pair_stat(s, 11.1, Y0 + 1.25, 5.8, "Tiempo total de las 20 consultas", float(ps["tot"][0]), float(ps["tot"][1]))
+    pair_stat(s, 11.1, Y0 + 3.75, 5.8, "Una consulta típica (mediana)", float(ps["p50"][0]), float(ps["p50"][1]), nd=2, note=None)
+    notes(s, f"Veinte consultas, cada una repetida tres veces, sin contar la primera. RG fue más rápido en las veinte. La que más mejoró, query48, fue 3,58 veces más rápida; la que menos, query57, 1,08 veces. En promedio, usando la media geométrica, que es la forma correcta de promediar este tipo de comparaciones, RG fue {geo} veces más rápido. Para el total de las veinte consultas: RA3 tardó 148 segundos y RG, 97. En azul, las consultas que leen y agregan muchos datos; en naranja, las de cálculo pesado.")
 
-    # 15 scan vs cpu
+    # 15 read vs compute
     s = S[14]
-    set_title(s, "Gana más el que escanea")
-    stat(s, X0, Y0 + 0.35, 7.6, f"{es(float(ps['scan']), 2)}x", "consultas de scan y agregación (10\u00a0consultas)", size=120)
-    stat(s, X0 + 8.1, Y0 + 0.35, 7.6, f"{es(float(ps['cpu']), 2)}x", "consultas de CPU: ventanas y joins grandes (10\u00a0consultas)", size=120, color=ORANGE)
-    textbox(s, X0, Y0 + 4.5, 15.6, 1.0, ["La promesa de AWS es hasta 2,2x: **en scan la superamos; en CPU, no.**"], size=26, color=WHITE)
-    notes(s, "Separé las consultas en dos clases antes de correrlas, no después. Las que leen mucho y agregan ganaron 2,28 veces: ahí es donde Graviton y el ancho de banda de memoria brillan. Las de CPU, con funciones de ventana y joins de quince tablas, ganaron 1,58. Si tu warehouse es mayormente dashboards con agregaciones, estás del lado bueno.")
+    set_title(s, "Donde más gana: leer y agregar")
+    stat(s, X0, Y0 + 0.35, 7.6, f"{es(float(ps['scan']), 2)}x", "consultas que leen y agregan muchos datos (10 consultas)", size=120)
+    stat(s, X0 + 8.1, Y0 + 0.35, 7.6, f"{es(float(ps['cpu']), 2)}x", "consultas de cálculo pesado: funciones de ventana y joins grandes (10 consultas)", size=120, color=ORANGE)
+    textbox(s, X0, Y0 + 4.5, 15.2, 1.0, ["AWS anuncia hasta 2,2x: **en las consultas de lectura lo superamos; en las de cálculo, no llegamos.**"], size=25, color=WHITE)
+    notes(s, "Separé las consultas en dos grupos antes de ejecutarlas, no después. Las que leen muchos datos y los agregan mejoraron 2,28 veces: ahí es donde Graviton y el ancho de banda de memoria hacen la diferencia. Las de cálculo pesado, con funciones de ventana y joins de quince tablas, mejoraron 1,58 veces. Si tu warehouse es sobre todo dashboards y reportes con agregaciones, estás en el lado que más gana.")
 
     # 16 concurrency
     s = S[15]
-    set_title(s, f"Concurrencia: {es(rg_q / ra3_q)}x más consultas", 50)
+    set_title(s, f"Varios usuarios a la vez: {es(rg_q / ra3_q)}x", 50)
     bar_chart(s, X0, Y0 - 0.2, 9.0, 6.0, ["RA3", "RG"], [("Consultas por hora", [ra3_q, rg_q])], [ACCENT],
               fmt='0', point_colors=[RA3C, ACCENT], label_size=28, axis_size=24, gap=80, label_fn=lambda v: str(int(v)))
-    textbox(s, 10.6, Y0 + 0.6, 6.2, 4.5, ["**Consultas por hora**", "5 flujos durante 30 minutos", "Sin cola en ninguno", "Cero fallas"],
-            size=26, space=18)
-    notes(s, f"Cinco usuarios lanzando las mismas veinte consultas en orden aleatorio durante media hora. RG completó {int(rg_q)} consultas por hora contra {int(ra3_q)} de RA3. Ninguno tuvo que encolar consultas.")
+    textbox(s, 10.6, Y0 + 0.6, 6.2, 4.5, ["**Consultas por hora** (más es mejor)", "Cinco usuarios simulados durante 30 minutos",
+                                           "Ninguna consulta quedó en espera", "Ningún error"], size=25, space=18)
+    notes(s, f"Simulé cinco usuarios lanzando las mismas veinte consultas, en distinto orden, durante media hora. RG completó {int(rg_q)} consultas por hora y RA3, {int(ra3_q)}. En ninguno de los dos hubo consultas en espera.")
 
     # 17 load and ELT
     s = S[16]
-    set_title(s, "Cargar y transformar")
-    textbox(s, X0, Y0 + 0.1, 6.6, 5.6, ["**100 GB en 20 min 44 s**", "COPY desde S3 en 2 × ra3.xlplus (carga inicial, una vez)",
-                                        f"COPY store_returns: **{es(elt_a['ecopy']/elt_g['ecopy'], 2)}x**",
-                                        f"CTAS pesado: **{es(elt_a['ectas']/elt_g['ectas'], 2)}x**"], size=26, space=18)
-    bar_chart(s, X0 + 7.0, Y0 - 0.2, 8.8, 6.0, ["COPY store_returns", "CTAS pesado"],
+    set_title(s, "Carga y transformación")
+    textbox(s, X0, Y0 + 0.1, 6.6, 5.6, ["**Cargar los 100 GB tomó 20 min 44 s**", "Desde S3, en RA3, una sola vez",
+                                        f"Copiar una tabla desde S3: **{es(elt_a['ecopy']/elt_g['ecopy'], 2)}x**",
+                                        f"Crear una tabla resumen (CTAS): **{es(elt_a['ectas']/elt_g['ectas'], 2)}x**"], size=25, space=18)
+    bar_chart(s, X0 + 7.0, Y0 - 0.2, 8.6, 6.0, ["Copiar store_returns", "Tabla resumen (CTAS)"],
               [("RA3", [elt_a["ecopy"], elt_a["ectas"]]), ("RG", [elt_g["ecopy"], elt_g["ectas"]])],
               [RA3C, ACCENT], fmt='0.0" s"', legend=True, label_size=20, axis_size=20, label_fn=lambda v: es(v) + " s")
-    notes(s, "La carga inicial la hice una sola vez, en RA3, y RG nació del snapshot. El escenario de ELT repite un COPY y un CTAS en los dos: RG fue 1,5 y 1,6 veces más rápido. Son dos corridas por escenario, así que lo tomo como dirección, no como número exacto.")
+    notes(s, "La carga inicial la hice una sola vez, en RA3, y RG se creó a partir del snapshot. La prueba de transformación repite una copia desde S3 y la creación de una tabla resumen en los dos clústeres: RG fue 1,5 y 1,6 veces más rápido. Cada una se ejecutó dos veces, así que lo tomo como tendencia, no como número exacto.")
 
     # 18 cost
     s = S[17]
-    set_title(s, "Más rápido y más barato")
+    set_title(s, "Más rápido y también más barato")
     ua, ug = float(ps["usd"][0]), float(ps["usd"][1])
-    stat(s, X0, Y0 + 0.2, 9.0, f"USD {es(ua, 3)} → {es(ug, 3)}", "por corrida del escenario de potencia", size=54, color=WHITE)
-    stat(s, X0 + 9.2, Y0 + 0.2, 6.4, f"{es(ua / ug)}x", "menos costo por la misma carga", size=110)
-    textbox(s, X0, Y0 + 4.4, 15.6, 1.2, ["Se suman dos efectos: **el nodo cuesta 30 % menos por hora y termina antes.**"], size=26, color=WHITE)
-    notes(s, "Esto es lo que más le interesa a quien paga la factura. No es solo que el nodo sea más barato: como también termina antes, cada corrida cuesta menos de la mitad.")
+    stat(s, X0, Y0 + 0.2, 9.0, f"USD {es(ua, 3)} → {es(ug, 3)}", "lo que costó cada ejecución de las 20 consultas", size=54, color=WHITE)
+    stat(s, X0 + 9.2, Y0 + 0.2, 6.2, f"{es(ua / ug)}x", "menos costo por el mismo trabajo", size=110)
+    textbox(s, X0, Y0 + 4.4, 15.2, 1.2, ["Dos razones que se suman: **el nodo RG cuesta 30 % menos por hora y además termina antes.**"], size=25, color=WHITE)
+    notes(s, "Esto es lo que más le interesa a quien paga la factura. No solo el nodo es más barato: como termina antes, cada ejecución cuesta menos de la mitad.")
 
     # 19 transition
     set_transition(S[18], "DATA", "LAKE")
-    notes(S[18], "Ahora la parte más interesante, y la que más depende de cómo tienes tus datos.")
+    notes(S[18], "Ahora la parte más interesante, y la que más depende de cómo tienes guardados tus datos.")
 
     # 20 three ways
     s = S[19]
-    set_title(s, "El mismo dato, tres formas")
-    for i, (t, b) in enumerate([("Local", "Tablas cargadas en el warehouse"), ("Iceberg", "Tablas en S3 registradas en Glue (ice.*)"),
-                                ("Parquet", "Tablas externas en S3 registradas en Glue (pq.*)")]):
+    set_title(s, "El mismo dato, de tres formas")
+    for i, (t, b) in enumerate([("Local", "Tablas dentro del warehouse"), ("Iceberg", "Tablas Iceberg en S3, registradas en Glue"),
+                                ("Parquet", "Archivos Parquet en S3, registrados en Glue")]):
         card(s, X0 + i * 5.2, Y0, 4.9, 2.9, t, b, size=22, title_size=36, title_color=ACCENT)
-    textbox(s, X0, Y0 + 3.4, 15.6, 2.4, ["Mismas 6 consultas en las tres, con las **mismas 483 filas de resultado**.",
-                                          "RA3 lee S3 con **Spectrum** (fuera de tu VPC); RG, con su **motor integrado** (dentro de tu VPC)."],
-            size=25, space=14)
-    notes(s, "Escribí las mismas cinco tablas en Iceberg y en Parquet desde el warehouse, y comprobé que las seis consultas del lago devuelven exactamente las mismas 483 filas en las tres versiones. Así lo único que cambia es cómo se leen.")
+    textbox(s, X0, Y0 + 3.4, 15.2, 2.4, ["Las mismas 6 consultas en las tres versiones devuelven **exactamente las mismas 483 filas**.",
+                                          "RA3 lee S3 a través de **Spectrum**, fuera de tu VPC; RG lo lee **con sus propios nodos**, dentro de tu VPC."],
+            size=24, space=14)
+    notes(s, "Escribí las mismas cinco tablas en Iceberg y en Parquet desde el warehouse, y comprobé que las seis consultas devuelven exactamente las mismas 483 filas en las tres versiones. Así, lo único que cambia es la forma de leer los datos.")
 
     # 21 iceberg
     s = S[20]
     ia, ig = sum(ice_a.values()), sum(ice_g.values())
-    set_title(s, f"Iceberg: {es(stats.geomean(stats.speedups(ice_a, ice_g).values()), 2)}x con caché caliente", 48)
+    set_title(s, f"Iceberg: {es(stats.geomean(stats.speedups(ice_a, ice_g).values()), 2)}x, ya con caché", 48)
     qs = sorted(ice_a)
     bar_chart(s, X0 - 0.1, Y0 - 0.2, 9.6, 6.1, qs, [("RA3", [ice_a[q] for q in qs]), ("RG", [ice_g[q] for q in qs])],
               [RA3C, ACCENT], fmt='0.0" s"', legend=True, label_size=15, axis_size=17, label_fn=lambda v: es(v) + " s")
-    stat(s, 11.0, Y0 + 0.2, 5.8, f"{es(ia)} → {es(ig)} s", "total de las 6 consultas", size=44, color=WHITE)
-    textbox(s, 11.0, Y0 + 3.0, 5.8, 2.8, ["**Letra chica:** la primera lectura en RG tardó hasta 27 s; después, unos 2 s. RG cachea el lago."],
-            size=22, color=ORANGE)
-    notes(s, "RG lee Iceberg casi dos veces más rápido que RA3, pero hay letra chica: la primera vez que RG toca los datos tarda bastante más, porque los trae y los guarda en caché. Mi método descarta la primera pasada, así que este número es con caché caliente. Si tus consultas al lago son esporádicas, cuenta con esa primera lectura.")
+    pair_stat(s, 11.0, Y0 + 0.1, 5.8, "Tiempo total de las 6 consultas", ia, ig)
+    textbox(s, 11.0, Y0 + 2.9, 5.8, 2.8, ["**Ojo:** la primera vez que RG lee los datos tarda hasta 27 s. Desde la segunda, unos 2 s, porque los guarda en caché."],
+            size=21, color=ORANGE)
+    notes(s, "RG lee Iceberg casi dos veces más rápido que RA3, con una salvedad: la primera vez que toca los datos tarda bastante más, porque los trae de S3 y los guarda en caché. Mi método no cuenta la primera repetición, así que este resultado es con la caché ya cargada. Si consultas el data lake de vez en cuando, ten en cuenta esa primera lectura.")
 
     # 22 parquet
     s = S[21]
-    set_title(s, "Parquet: mandan los archivos")
+    set_title(s, "Parquet: los archivos importan", 50)
     rows = [["Parquet store_sales", "RA3 (total)", "RG (total)", "RG frente a RA3 (media geom.)"],
             ["4 archivos de ≈3,8 GB", f"{es(pq1[0])} s", f"{es(pq1[1])} s", f"**{es(pq1[2], 2)}x**"],
             ["31 archivos de ≈0,5 GB", f"{es(pq2[0])} s", f"{es(pq2[1])} s", f"**{es(pq2[2], 2)}x**"]]
     table(s, X0, Y0, 15.2, rows, [4.8, 2.6, 2.6, 5.2], size=24, row_h=0.95)
-    textbox(s, X0, Y0 + 3.3, 15.6, 2.6, ["**Mismo plan de ejecución** en los dos clústeres (EXPLAIN idéntico).",
-                                          "El mismo cambio de archivos **ayuda a RG y perjudica a Spectrum** en RA3.",
-                                          "Una sola repetición: confía en la dirección, no en el número exacto."], size=24, space=14)
-    notes(s, "Este fue el resultado que más me sorprendió. Con Parquet, RG empezó siendo más lento que RA3. Revisé el plan de ejecución: idéntico en los dos. Lo distinto era el formato de los archivos: Redshift los había escrito en solo cuatro archivos enormes, uno por slice, porque el tope por defecto es 6.200 MB. Los reescribí en archivos de medio giga y RG pasó a ganar, mientras que RA3 empeoró. El mismo cambio ayuda a un motor y perjudica al otro.")
+    textbox(s, X0, Y0 + 3.3, 15.2, 2.6, ["Los dos clústeres usan **exactamente el mismo plan de ejecución**.",
+                                          "Partir los archivos en pedazos más chicos **ayuda a RG y perjudica a RA3**.",
+                                          "Lo repetimos una sola vez: la tendencia es clara; el número exacto, no tanto."], size=24, space=14)
+    notes(s, "Este fue el resultado que más me sorprendió. Con Parquet, RG empezó siendo más lento que RA3. Revisé el plan de ejecución y era idéntico en los dos. La diferencia estaba en los archivos: Redshift los había escrito en solo cuatro archivos enormes, uno por slice, porque por defecto cada archivo puede llegar a 6.200 MB. Los reescribí en archivos de medio giga y RG pasó a ganar, mientras que RA3 empeoró. El mismo cambio ayuda a uno y perjudica al otro.")
 
     # 23 spectrum cost
     s = S[22]
-    set_title(s, "Spectrum se cobra aparte")
-    stat(s, X0, Y0 + 0.1, 5.0, "USD 0,083", "18,2 GB en Iceberg (2 pasadas)", size=60, color=ORANGE)
-    stat(s, X0 + 5.3, Y0 + 0.1, 5.0, "USD 0,092", "20,2 GB en Parquet (2 pasadas)", size=60, color=ORANGE)
-    stat(s, X0 + 10.6, Y0 + 0.1, 5.0, "USD 0", "por escaneo en RG", size=60, color=ACCENT)
-    textbox(s, X0, Y0 + 3.9, 15.6, 1.5, ["USD 5 por TB escaneado en RA3. **Multiplica por tus consultas al lago de un mes.**"], size=26, color=WHITE)
-    notes(s, "En nuestro lab son centavos, porque son 100 GB. Pero esto escala con el volumen y con la frecuencia: un equipo que escanea decenas de TB al mes en el lago lo nota en la factura. En RG ese cargo desaparece.")
+    set_title(s, "Spectrum cobra aparte")
+    stat(s, X0, Y0 + 0.1, 5.0, "USD 0,083", "18,2 GB leídos de Iceberg (2 repeticiones)", size=60, color=ORANGE)
+    stat(s, X0 + 5.2, Y0 + 0.1, 5.0, "USD 0,092", "20,2 GB leídos de Parquet (2 repeticiones)", size=60, color=ORANGE)
+    stat(s, X0 + 10.4, Y0 + 0.1, 4.8, "USD 0", "por lectura en RG", size=60, color=ACCENT)
+    textbox(s, X0, Y0 + 3.9, 15.2, 1.5, ["En RA3 se pagan USD 5 por cada TB leído. **Multiplícalo por todo lo que consultas del data lake en un mes.**"], size=25, color=WHITE)
+    notes(s, "En el laboratorio son centavos, porque son 100 GB. Pero esto crece con el volumen y con la frecuencia: un equipo que lee decenas de TB al mes desde el data lake lo nota en la factura. En RG ese cobro desaparece.")
 
     # 24 lessons
     s = S[23]
-    set_title(s, "Lo que el lago nos enseñó")
-    les = [("S3 Tables: IAM", "cross-database reference to database \"…@s3tablescatalog\" is not supported"),
-           ("Iceberg: sin CHAR", "CHAR type is not supported for column \"d_date_id\" in Iceberg table creation"),
-           ("Lake Formation", "Insufficient Lake Formation permission(s): Required Create Table on rr_iceberg")]
+    set_title(s, "Lo que aprendimos del data lake")
+    les = [("S3 Tables pide IAM", "cross-database reference to database \"…@s3tablescatalog\" is not supported"),
+           ("Iceberg no acepta CHAR", "CHAR type is not supported for column \"d_date_id\" in Iceberg table creation"),
+           ("Lake Formation manda", "Insufficient Lake Formation permission(s): Required Create Table on rr_iceberg")]
     for i, (t, e) in enumerate(les):
         c = card(s, X0 + i * 5.2, Y0, 4.9, 3.4, t, [], size=20, title_size=26, title_color=ORANGE)
         p = c.text_frame.add_paragraph()
         r = p.add_run()
         r.text = e
         r.font.name, r.font.size, r.font.color.rgb = "Courier New", Pt(17), SOFT
-    textbox(s, X0, Y0 + 3.9, 15.2, 1.0, ["Si piensas usar S3 Tables desde Redshift, **define primero tu modelo de autenticación.**"], size=24, color=WHITE)
-    notes(s, "Quería medir S3 Tables y no pude, por una razón de diseño: las tablas de S3 Tables se leen por el catálogo montado automáticamente, que exige conectarse con identidad IAM, y el runner se conecta con un usuario de base de datos. Cambiar de usuario solo para esa variante habría medido otra ruta de permisos. Iceberg además no acepta CHAR, y Lake Formation exige permisos explícitos sobre las bases de Glue.")
+    textbox(s, X0, Y0 + 3.9, 15.2, 1.0, ["Si vas a usar S3 Tables desde Redshift, **decide primero cómo se van a autenticar tus usuarios.**"], size=24, color=WHITE)
+    notes(s, "Quería probar S3 Tables y no pude, por una razón de diseño: esas tablas solo se leen conectándose con una identidad de IAM, y mi programa se conecta con un usuario de base de datos. Cambiar de usuario solo para esa prueba habría medido otra cosa. Además, Iceberg no acepta columnas CHAR, y Lake Formation exige permisos explícitos sobre las bases de Glue.")
 
     # 25 transition
     set_transition(S[24], "LA", "MIGRACIÓN")
-    notes(S[24], "Supongamos que decides migrar. ¿Cuánto duele?")
+    notes(S[24], "Supongamos que decides migrar. ¿Cuánto cuesta en tiempo y en sustos?")
 
     # 26 drill timeline
     s = S[25]
-    set_title(s, "Migrar tomó 2 min 48 s")
+    set_title(s, "La migración tomó 2 min 48 s")
     probes = [{"ts": "2026-10-05T19:05:47Z", "write_probe": "START"}] + list(csv.DictReader(open(R / "drill-log.csv")))  # start from drill.md
     n = len(probes)
     line_y = Y0 + 1.9
-    ln = s.shapes.add_connector(1, Inches(X0 + 0.3), Inches(line_y), Inches(X0 + 15.3), Inches(line_y))
+    ln = s.shapes.add_connector(1, Inches(X0 + 0.3), Inches(line_y), Inches(X0 + 15.0), Inches(line_y))
     ln.line.color.rgb, ln.line.width = MUTED, Pt(3)
     for i, row in enumerate(probes):
-        cx = X0 + 0.3 + i * 15.0 / (n - 1)
+        cx = X0 + 0.3 + i * 14.7 / (n - 1)
         ok, start = row["write_probe"] == "FINISHED", row["write_probe"] == "START"
         dot = s.shapes.add_shape(MSO_SHAPE.OVAL, Inches(cx - 0.28), Inches(line_y - 0.28), Inches(0.56), Inches(0.56))
         dot.fill.solid(), setattr(dot.fill.fore_color, "rgb", WHITE if start else (ACCENT if ok else ORANGE))
         dot.line.fill.background()
         textbox(s, cx - 1.1, line_y - 1.3, 2.2, 0.6, [row["ts"][11:19]], size=18, color=SOFT, align=PP_ALIGN.CENTER)
-        textbox(s, cx - 1.1, line_y + 0.45, 2.2, 0.6, ["inicio" if start else ("escribe" if ok else "solo lectura")], size=18,
+        textbox(s, cx - 1.2, line_y + 0.45, 2.4, 0.9, ["inicio" if start else ("se puede escribir" if ok else "solo lectura")], size=17,
                 color=WHITE if start else (RGBColor(0x8F, 0xB4, 0xFF) if ok else ORANGE), align=PP_ALIGN.CENTER, bold=True)
-    stat(s, X0, Y0 + 3.0, 7.6, "1:35 – 2:42", "minutos en solo lectura (sondeo cada 30 s)", size=60, color=ORANGE)
-    stat(s, X0 + 8.1, Y0 + 3.0, 7.6, "Sin cambios", "en el skew: 1:1 conserva los slices", size=60, color=ACCENT)
-    notes(s, "Restauré una copia de RA3 e hice el elastic resize a RG, probando una escritura cada 30 segundos. El resize empezó a las 19:05:47 y terminó a las 19:08:35. El clúster estuvo en solo lectura entre 1 minuto 35 y 2 minutos 42 segundos; el rango es por el sondeo cada 30 segundos. Con el mapeo 1 a 1 se conserva la cantidad de slices, así que la distribución de los datos no cambió. Ojo: eso vale para 2 nodos a 2 nodos; si cambias la cantidad de nodos, como en el 4 a 3 de los 4xlarge, el skew sí puede aparecer.")
+    stat(s, X0, Y0 + 3.0, 7.6, "1:35 a 2:42", "minutos sin poder escribir (lo revisamos cada 30 s)", size=60, color=ORANGE)
+    stat(s, X0 + 8.1, Y0 + 3.0, 7.4, "Sin cambios", "en cómo se reparten los datos entre nodos", size=60, color=ACCENT)
+    notes(s, "Restauré una copia del clúster RA3 y lo convertí a RG con un elastic resize, intentando escribir cada 30 segundos. Empezó a las 19:05:47 y terminó a las 19:08:35. El clúster quedó en solo lectura entre 1 minuto 35 y 2 minutos 42 segundos; el rango se debe a que revisábamos cada 30 segundos. Como pasamos de 2 nodos a 2 nodos, los datos quedaron repartidos igual. Ojo: si cambias la cantidad de nodos, como al pasar de 4 a 3 en el tamaño 4xlarge, el reparto sí puede desbalancearse.")
 
     # 27 traps
     s = S[26]
-    set_title(s, "Trampas del camino")
-    traps = ["**Contraseña administrada:** un snapshot con contraseña administrada solo se restaura con \u2011\u2011manage\u2011master\u2011password",
-             "**Primero un backup:** un clúster restaurado no acepta elastic resize hasta tener un snapshot propio",
-             "**«Available» no siempre es disponible:** el estado dice available mientras otro campo sigue en Modifying",
-             "**El 4 → 3 y el skew:** cambiar la cantidad de nodos puede desbalancear los slices",
-             "**Restore = endpoint nuevo:** si migras restaurando, reconfigura zero-ETL, DMS y datashares"]
-    textbox(s, X0, Y0, 15.6, 5.9, traps, size=23, bullets=True, space=16)
-    notes(s, "Las tres primeras me pasaron en el simulacro, en ese orden, y no las encontré en la guía de migración. Las dos últimas sí están en la documentación y en el blog de AWS. Todas quedaron resueltas en el script del repo.")
+    set_title(s, "Lo que nadie te cuenta")
+    traps = ["**La contraseña administrada:** para restaurar el snapshot hay que volver a pedirla con ‑‑manage‑master‑password",
+             "**Primero, un snapshot:** un clúster recién restaurado no acepta el resize hasta tener un snapshot propio",
+             "**«Disponible» no es lo mismo que listo:** el estado dice available, pero otro campo sigue en Modifying y el resize falla",
+             "**De 4 a 3 nodos:** cambiar la cantidad de nodos puede desbalancear los datos",
+             "**Restaurar cambia el endpoint:** si migras desde un snapshot, hay que reconfigurar zero-ETL, DMS y datashares"]
+    textbox(s, X0, Y0, 15.2, 5.9, traps, size=23, bullets=True, space=16)
+    notes(s, "Las tres primeras me pasaron en el simulacro, en ese orden, y no las encontré en la guía de migración. Las dos últimas sí aparecen en la documentación y en el blog de AWS. Todas quedaron resueltas en el script del repositorio.")
 
     # 28 transition
     set_transition(S[27], "DEMO")
@@ -592,25 +608,27 @@ def fill(prs):
 
     # 29 demo query
     s = S[28]
-    set_title(s, "Demo: una consulta, dos generaciones")
-    code(s, X0, Y0, 10.2, 5.0, "SELECT count(*)\nFROM store_sales, household_demographics,\n     time_dim, store\n"
+    set_title(s, "Demo: una consulta, dos clústeres", 50)
+    code(s, X0, Y0, 10.2, 4.3, "SELECT count(*)\nFROM store_sales, household_demographics,\n     time_dim, store\n"
          "WHERE ss_sold_time_sk = time_dim.t_time_sk\n  AND ss_hdemo_sk = household_demographics.hd_demo_sk\n"
          "  AND ss_store_sk = s_store_sk\n  AND time_dim.t_hour = 15\n  AND time_dim.t_minute >= 30\n"
-         "  AND household_demographics.hd_dep_count = 7\n  AND store.s_store_name = 'ese'\nLIMIT 100;", size=18)
-    stat(s, 11.6, Y0 + 0.0, 5.2, f"{es(q96[1], 2)} s", "RA3 (query96)", size=56, color=RA3C)
-    stat(s, 11.6, Y0 + 2.9, 5.2, f"{es(q96[2], 2)} s", f"RG · {es(q96[3], 2)}x", size=56, color=ACCENT)
-    notes(s, "Una consulta típica de scan: cuenta ventas filtrando por tres dimensiones, sobre 288 millones de filas en la tabla de hechos. En RA3 tarda 1,77 segundos; en RG, 0,67.")
+         "  AND household_demographics.hd_dep_count = 7\n  AND store.s_store_name = 'ese'\nLIMIT 100;", size=17)
+    textbox(s, X0, Y0 + 4.5, 10.2, 1.4, ["**Por qué pesa:** recorre las 288 millones de ventas de store_sales y las cruza con tres tablas para quedarse con una franja horaria y un tipo de hogar."],
+            size=20, color=SOFT)
+    pair_stat(s, 11.6, Y0 + 0.3, 5.0, "query96", q96[1], q96[2], nd=2)
+    textbox(s, 11.6, Y0 + 3.0, 5.0, 1.2, [f"RG fue **{es(q96[3], 2)}x** más rápido"], size=28, color=WHITE)
+    notes(s, "Esta es una consulta típica de lectura: cuenta ventas filtrando por hora del día, por tipo de hogar y por tienda. Lo pesado es que tiene que recorrer las 288 millones de filas de la tabla de ventas y cruzarlas con tres tablas más. En RA3 tarda 1,77 segundos; en RG, 0,67.")
 
     # 30 demo explain
     s = S[29]
-    set_title(s, "Demo: mismo plan, distinto motor", 50)
+    set_title(s, "Demo: el mismo plan en los dos", 50)
     code(s, X0, Y0, 7.6, 3.3, "RA3  (lq3 sobre Parquet)\n\nXN Hash Join DS_BCAST_INNER\n  XN Hash Join DS_BCAST_INNER\n"
          "    XN S3 Query Scan ss\n      S3 Seq Scan pq.store_sales\n         rows=287997024", size=17)
     code(s, X0 + 7.8, Y0, 7.6, 3.3, "RG  (lq3 sobre Parquet)\n\nXN Hash Join DS_BCAST_INNER\n  XN Hash Join DS_BCAST_INNER\n"
          "    XN Seq Scan pq.store_sales\n       format:PARQUET\n         rows=287997024", size=17)
-    textbox(s, X0, Y0 + 3.75, 15.2, 1.3, ["Mismos joins y mismas estimaciones de filas. **Lo único distinto: quién lee S3.**"],
+    textbox(s, X0, Y0 + 3.75, 15.2, 1.3, ["Mismos joins y mismas estimaciones de filas. **Lo único que cambia es quién lee los datos de S3.**"],
             size=24, color=WHITE)
-    notes(s, "Así diagnostiqué el caso de Parquet. Si los planes fueran distintos, la diferencia sería el plan y no el motor. Son iguales; cambia el operador que lee S3. Cuando veas una diferencia rara entre clústeres, empieza por aquí.")
+    notes(s, "Así encontré la explicación del caso de Parquet. Si los planes fueran distintos, la diferencia estaría en el plan y no en el clúster. Son iguales: lo único que cambia es la pieza que lee S3, Spectrum en RA3 y los propios nodos en RG. Cuando veas una diferencia rara entre dos clústeres, empieza por aquí.")
 
     # 31 demo results page
     s = S[30]
@@ -618,53 +636,85 @@ def fill(prs):
     shot = ROOT / "slides/assets/resultados-captura.png"
     if shot.exists():
         picture(s, shot, X0, Y0 + 0.15, 10.0, 5.6)
-        tx = 11.8
+        tx = 11.6
     else:
         tx = X0
-    textbox(s, tx, Y0 + 0.2, 16.6 - tx, 5.4, ["Página interactiva con todos los números de la charla:",
-                                              "Aceleración por consulta, filtrable por clase", "El lago antes y después de reescribir Parquet",
-                                              "La línea de tiempo del simulacro"], size=24, space=16)
-    notes(s, "Esta página tiene todos los números de la charla, sacados directamente de los archivos del repo. La voy a abrir un momento para que vean cada consulta. Abrir: https://claude.ai/artifact/1MgMakVPq4URRXQMZp4aVk (privada, con la sesión del orador; copia local: slides/demo/resultados.html).")
+    textbox(s, tx, Y0 + 0.2, 16.4 - tx, 5.4, ["Una página con todos los números de la charla:",
+                                              "Cuánto mejoró RG en cada consulta", "El data lake antes y después de reescribir los archivos Parquet",
+                                              "La línea de tiempo de la migración"], size=23, space=16)
+    notes(s, "Esta página reúne todos los números de la charla, sacados directamente de los archivos del repositorio. La abro un momento para que vean cada consulta. Abrir: https://claude.ai/artifact/1MgMakVPq4URRXQMZp4aVk (privada, con la sesión del orador; copia local: slides/demo/resultados.html).")
 
     # 32 decision
     s = S[31]
     set_title(s, "¿Migrar o no migrar?")
-    cols = [("Migra si", ["Tu carga es de scan y agregación", "Lees el data lake con frecuencia", "Estás en xlplus o 4xlarge: 30\u00a0% menos por vCPU"], ACCENT),
-            ("Prueba antes si", ["Tu carga es de CPU: ventanas, joins grandes", "Tu lago es Parquet con archivos grandes", "Necesitas S3 Tables con usuarios de base de datos"], ORANGE),
-            ("Serverless si", ["Tu uso es intermitente", "No quieres operar un clúster", "USD 0,375 por RPU-hora (no lo medimos)"], RA3C)]
+    cols = [("Migra si", ["Tus consultas leen y agregan muchos datos (dashboards, reportes)", "Consultas seguido el data lake", "Usas xlplus o 4xlarge: pagas 30 % menos por vCPU"], ACCENT),
+            ("Prueba antes si", ["Tus consultas son de cálculo pesado (ventanas, joins grandes)", "Tu data lake está en Parquet con archivos grandes", "Quieres usar S3 Tables con usuarios de base de datos"], ORANGE),
+            ("Mira Serverless si", ["Usas Redshift solo a ratos", "No quieres administrar un clúster", "Cuesta USD 0,375 por RPU-hora (no lo probamos)"], RA3C)]
     for i, (t, items, col) in enumerate(cols):
-        card(s, X0 + i * 5.2, Y0, 4.9, 4.3, t, ["• " + x for x in items], size=21, title_size=30, title_color=col)
-    notes(s, "Esta es mi respuesta a la pregunta del título. Para la mayoría de los equipos con RA3 la migración conviene: es más rápida y más barata, y el resize toma minutos. Pero prueba con tus datos, sobre todo si tu lago es Parquet o tu carga es de CPU. Serverless es otra decisión, sobre la forma de tu uso, y no la medí, así que no te doy un número.")
+        card(s, X0 + i * 5.2, Y0, 4.9, 4.4, t, ["• " + x for x in items], size=21, title_size=30, title_color=col)
+    notes(s, "Esta es mi respuesta a la pregunta del título. Para la mayoría de los equipos con RA3, migrar conviene: es más rápido, más barato y el cambio toma minutos. Pero prueba primero con tus datos, sobre todo si tu data lake está en Parquet o si tus consultas son de cálculo pesado. Serverless es otra decisión, que depende de cómo usas Redshift, y como no lo medí, no les doy un número.")
 
     # 33 take the lab
     s = S[32]
     set_title(s, "Llévate el laboratorio")
-    textbox(s, X0, Y0 + 0.1, 15.6, 1.2, ["github.com/andrezc98/redshift-redemption"], size=44, color=ACCENT, bold=True)
-    textbox(s, X0, Y0 + 1.7, 15.6, 4.0, ["Terraform + GitHub Actions con OIDC · runner en Python · runbook paso a paso",
-                                          "Todos los resultados y su método en results/",
-                                          "Este lab, a 100 GB: un día de trabajo y unas decenas de dólares"], size=26, bullets=True, space=18)
-    notes(s, "Todo lo que vieron está en el repo: la infraestructura, el runner, el runbook con cada paso y los errores que encontré. Cámbiale el dataset por el tuyo y repite las mediciones.")
+    textbox(s, X0, Y0 + 0.1, 15.2, 1.2, ["github.com/andrezc98/redshift-redemption"], size=44, color=ACCENT, bold=True)
+    textbox(s, X0, Y0 + 1.7, 15.2, 4.0, ["La infraestructura, con Terraform y GitHub Actions (OIDC)",
+                                          "El programa que lanza las pruebas, en Python, y un runbook paso a paso",
+                                          "Todos los resultados, con su método, en la carpeta results/",
+                                          "Repetirlo con 100 GB toma un día de trabajo y unas decenas de dólares"], size=25, bullets=True, space=18)
+    notes(s, "Todo lo que vieron está en el repositorio: la infraestructura, el programa que lanza las pruebas, el runbook con cada paso y los errores que me encontré. Cámbienle el dataset por el suyo y repitan las mediciones.")
 
     # 34 kahoot
     s = S[33]
     set_title(s, "Kahoot")
-    qs3 = ["¿Con qué leen el data lake los clústeres RG?",
-           "¿Qué tipo de consultas ganó más al pasar de RA3 a RG?",
-           "Si migras 4 nodos ra3.4xlarge, ¿cuántos rg.4xlarge recomienda AWS?"]
+    qs3 = ["¿Con qué lee RG los datos del data lake?",
+           "¿Qué tipo de consultas mejoró más al pasar de RA3 a RG?",
+           "Si tienes 4 nodos ra3.4xlarge, ¿cuántos rg.4xlarge recomienda AWS?"]
     for i, q in enumerate(qs3):
         card(s, X0 + i * 5.2, Y0, 4.9, 3.2, f"Pregunta {i + 1}", q, size=23, title_size=26, title_color=ACCENT)
-    textbox(s, X0, Y0 + 3.7, 15.2, 1.0, ["Respuestas y comentarios en las notas del orador."], size=20, color=MUTED)
-    notes(s, "Kahoot. 1) Con qué leen el lago los RG: b) un motor de lago integrado en el propio clúster (a Spectrum, c Athena, d Glue ETL). RA3 usa Spectrum, que cobra USD 5 por TB. "
-             "2) Qué consultas ganaron más: b) las de scan y agregación (a CPU, c ninguna, d solo lago). Scan 2,28x frente a CPU 1,58x. "
-             "3) 4 ra3.4xlarge a cuántos rg.4xlarge: b) 3 (a 4, c 2, d 8). 4 × 12 vCPU = 3 × 16 vCPU = 48.")
+    textbox(s, X0, Y0 + 3.7, 15.2, 1.0, ["Las respuestas y los comentarios están en las notas."], size=20, color=MUTED)
+    notes(s, "Kahoot. Pregunta 1: ¿Con qué lee RG los datos del data lake? a) Redshift Spectrum; b) Con sus propios nodos, sin Spectrum (correcta); c) Amazon Athena; d) Trabajos de AWS Glue. Comentario: RA3 usa Spectrum, que cobra USD 5 por TB leído; RG lee el lago con sus nodos y sin ese cobro. "
+             "Pregunta 2: ¿Qué tipo de consultas mejoró más al pasar de RA3 a RG? a) Las de cálculo pesado, con ventanas y joins grandes; b) Las que leen y agregan muchos datos (correcta); c) Ninguna, quedaron igual; d) Solo las del data lake. Comentario: 2,28 veces en lectura contra 1,58 en cálculo; el promedio de las 20 consultas fue 1,90. "
+             "Pregunta 3: Si tienes 4 nodos ra3.4xlarge, ¿cuántos rg.4xlarge recomienda AWS? a) 4; b) 3 (correcta); c) 2; d) 8. Comentario: un ra3.4xlarge tiene 12 vCPU y un rg.4xlarge, 16; 4 por 12 y 3 por 16 dan 48. Migrar uno a uno en ese tamaño te deja con un tercio de capacidad de más.")
 
     # 35 thanks
     s = S[34]
     set_title(s, "¡Gracias!", 72)
-    textbox(s, X0, Y0 + 0.4, 15.6, 4.5, ["**Andrés Zeballos** · Solutions Architect, phData",
+    textbox(s, X0, Y0 + 0.4, 15.2, 4.5, ["**Andrés Zeballos** · Solutions Architect en phData",
                                           "GitHub: andrezc98",
-                                          "Repo del lab: github.com/andrezc98/redshift-redemption"], size=30, space=22)
-    notes(s, "Gracias. Respondo preguntas en el chat. Si preguntan por Snowflake u otras plataformas: trabajo con varias y son buenas respuestas a contextos distintos; hoy vine a medir la decisión que los equipos nativos de AWS ya tienen enfrente: RA3 o RG.")
+                                          "El laboratorio: github.com/andrezc98/redshift-redemption"], size=30, space=22)
+    notes(s, "Gracias. Respondo preguntas en el chat. Si alguien pregunta por Snowflake u otras plataformas: trabajo con varias y son buenas respuestas para contextos distintos; hoy vine a medir la decisión que ya tienen enfrente los equipos que usan AWS: RA3 o RG.")
+
+
+def write_contenido(prs):
+    """slides/contenido.md is generated from the deck: on-slide text and speaker notes per slide."""
+    skip = ("HOY:", "Episodio II", "OCTUBRE", "Mes de", "HAN SOLO", "User Groups")
+    out = ["# Redshift Redemption — contenido de las diapositivas", "",
+           "Generado por `slides/build_deck.py` a partir del deck; no se edita a mano (cambia el script y",
+           "reconstruye). Charla: «Redshift Redemption: los nuevos nodos RG, ¿migrar o no migrar?», AWS Women",
+           "Colombia User Group, Episodio II, 2026-10-08. Cada número sale de `results/2026-10-05/` y",
+           "`results/prices.md`; las fuentes externas se citan en la diapositiva o en sus notas.", ""]
+    for i, slide in enumerate(prs.slides, 1):
+        texts = []
+        for sh in slide.shapes:
+            if sh.has_text_frame:
+                for p in sh.text_frame.paragraphs:
+                    t = "".join(r.text for r in p.runs).strip()
+                    if t and not t.startswith(skip):
+                        texts.append(t)
+            elif sh.has_table:
+                for row in sh.table.rows:
+                    texts.append(" | ".join(c.text for c in row.cells))
+            elif sh.has_chart:
+                ch = sh.chart
+                texts.append("[gráfico: " + ", ".join(f"{s.name}" for s in ch.plots[0].series) + "]")
+            elif sh.shape_type == 13:
+                texts.append("[imagen]")
+        out.append(f"## {i}")
+        out += [f"- {t}" for t in texts]
+        out += ["", "**Notas:** " + slide.notes_slide.notes_text_frame.text, ""]
+    (ROOT / "slides/contenido.md").write_text("\n".join(out))
+
 
 
 def main():
@@ -675,6 +725,7 @@ def main():
         assert len(prs.slides) == len(SRC), len(prs.slides)
         fill(prs)
         prs.save(str(OUT))
+        write_contenido(prs)
     print(f"wrote {OUT} ({len(SRC)} slides)")
 
 
