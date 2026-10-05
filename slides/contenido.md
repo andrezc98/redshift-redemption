@@ -121,12 +121,12 @@ Colombia User Group, Episodio II, 2026-10-08. Cada número sale de `results/2026
 - Con pocos datos, el costo fijo de cada consulta pesa más
 - Solo el tamaño xlarge
 - No probamos 4xlarge ni 12xlarge
-- Serverless
-- Lo comentamos con precios y documentación, sin pruebas propias
+- Serverless solo a 4 RPU
+- Capacidad fija para comparar; no probamos cómo escala
 - S3 Tables
 - No lo pudimos probar; más adelante les cuento por qué
 
-**Notas:** Prefiero decirlo desde el principio. Con 100 GB, buena parte de los datos que se consultan cabe en memoria, y eso reduce la ventaja de RG cuando hay que leer mucho. Si aun así RG gana, es buena señal; con más datos esperaría una diferencia mayor, pero eso no lo medí.
+**Notas:** Prefiero decirlo desde el principio. Con 100 GB, buena parte de los datos que se consultan cabe en memoria, y eso reduce la ventaja de RG cuando hay que leer mucho. Si aun así RG gana, es buena señal; con más datos esperaría una diferencia mayor, pero eso no lo medí. Serverless lo medimos solo con 4 RPU fijos, sin dejarlo escalar.
 
 ## 13
 - WAREHOUSE
@@ -193,12 +193,24 @@ Colombia User Group, Episodio II, 2026-10-08. Cada número sale de `results/2026
 **Notas:** Esto es lo que más le interesa a quien paga la factura. No solo el nodo es más barato: como termina antes, cada ejecución cuesta menos de la mitad.
 
 ## 19
+- ¿Y Serverless?
+-  | RA3 | RG | Serverless 4 RPU
+- 20 consultas (total) | 148,3 s | 96,7 s | 243,9 s
+- Consultas por hora, 5 usuarios | 680 | 1224 | 720
+- Iceberg (6 consultas) | 29,4 s | 14,6 s | 34,7 s
+- Costo por ejecución de las 20 | USD 0,089 | USD 0,041 | USD 0,102
+- Con la misma memoria (64 GB) y casi el mismo precio por hora, RG fue 3,1 veces más rápido que Serverless de 4 RPU.
+- La capacidad quedó fija a propósito: la ventaja de Serverless es escalar cuando hace falta y no cobrar sin consultas.
+
+**Notas:** Agregué Serverless con la misma memoria que el clúster RG: 4 RPU son 64 GB, y cuestan 1,50 dólares por hora contra 1,52 del clúster. Fijé la capacidad para que no escalara durante la prueba. En esas condiciones, RG fue unas tres veces más rápido en las consultas del warehouse, y Serverless quedó incluso por debajo de RA3 en casi todo. Pero ojo con la conclusión: 4 RPU es el tamaño de entrada, y lo que vende Serverless es otra cosa: escalar solo cuando hace falta y no cobrar cuando no hay consultas. Todas las pruebas de Serverless del día costaron 1,48 dólares. Fuente: results/2026-10-05/summary-serverless.md.
+
+## 20
 - DATA
 - LAKE
 
 **Notas:** Ahora la parte más interesante, y la que más depende de cómo tienes guardados tus datos.
 
-## 20
+## 21
 - El mismo dato, de tres formas
 - Local
 - Tablas dentro del warehouse
@@ -211,7 +223,7 @@ Colombia User Group, Episodio II, 2026-10-08. Cada número sale de `results/2026
 
 **Notas:** Escribí las mismas cinco tablas en Iceberg y en Parquet desde el warehouse, y comprobé que las seis consultas devuelven exactamente las mismas 483 filas en las tres versiones. Así, lo único que cambia es la forma de leer los datos.
 
-## 21
+## 22
 - Iceberg: 1,87x, ya con caché
 - [gráfico: RA3, RG]
 - Tiempo total de las 6 consultas
@@ -224,7 +236,7 @@ Colombia User Group, Episodio II, 2026-10-08. Cada número sale de `results/2026
 
 **Notas:** RG lee Iceberg casi dos veces más rápido que RA3, con una salvedad: la primera vez que toca los datos tarda bastante más, porque los trae de S3 y los guarda en caché. Mi método no cuenta la primera repetición, así que este resultado es con la caché ya cargada. Si consultas el data lake de vez en cuando, ten en cuenta esa primera lectura.
 
-## 22
+## 23
 - Parquet: los archivos importan
 - Parquet store_sales | RA3 (total) | RG (total) | RG frente a RA3 (media geom.)
 - 4 archivos de ≈3,8 GB | 31,7 s | 50,6 s | 0,82x
@@ -235,7 +247,7 @@ Colombia User Group, Episodio II, 2026-10-08. Cada número sale de `results/2026
 
 **Notas:** Este fue el resultado que más me sorprendió. Con Parquet, RG empezó siendo más lento que RA3. Revisé el plan de ejecución y era idéntico en los dos. La diferencia estaba en los archivos: Redshift los había escrito en solo cuatro archivos enormes, uno por slice, porque por defecto cada archivo puede llegar a 6.200 MB. Los reescribí en archivos de medio giga y RG pasó a ganar, mientras que RA3 empeoró. El mismo cambio ayuda a uno y perjudica al otro.
 
-## 23
+## 24
 - Spectrum cobra aparte
 - USD 0,083
 - 18,2 GB leídos de Iceberg (2 repeticiones)
@@ -247,7 +259,7 @@ Colombia User Group, Episodio II, 2026-10-08. Cada número sale de `results/2026
 
 **Notas:** En el laboratorio son centavos, porque son 100 GB. Pero esto crece con el volumen y con la frecuencia: un equipo que lee decenas de TB al mes desde el data lake lo nota en la factura. En RG ese cobro desaparece.
 
-## 24
+## 25
 - Lo que aprendimos del data lake
 - S3 Tables pide IAM
 - cross-database reference to database "…@s3tablescatalog" is not supported
@@ -259,13 +271,13 @@ Colombia User Group, Episodio II, 2026-10-08. Cada número sale de `results/2026
 
 **Notas:** Quería probar S3 Tables y no pude, por una razón de diseño: esas tablas solo se leen conectándose con una identidad de IAM, y mi programa se conecta con un usuario de base de datos. Cambiar de usuario solo para esa prueba habría medido otra cosa. Además, Iceberg no acepta columnas CHAR, y Lake Formation exige permisos explícitos sobre las bases de Glue.
 
-## 25
+## 26
 - LA
 - MIGRACIÓN
 
 **Notas:** Supongamos que decides migrar. ¿Cuánto cuesta en tiempo y en sustos?
 
-## 26
+## 27
 - La migración tomó 2 min 48 s
 - 19:05:47
 - inicio
@@ -288,7 +300,7 @@ Colombia User Group, Episodio II, 2026-10-08. Cada número sale de `results/2026
 
 **Notas:** Restauré una copia del clúster RA3 y lo convertí a RG con un elastic resize, intentando escribir cada 30 segundos. Empezó a las 19:05:47 y terminó a las 19:08:35. El clúster quedó en solo lectura entre 1 minuto 35 y 2 minutos 42 segundos; el rango se debe a que revisábamos cada 30 segundos. Como pasamos de 2 nodos a 2 nodos, los datos quedaron repartidos igual. Ojo: si cambias la cantidad de nodos, como al pasar de 4 a 3 en el tamaño 4xlarge, el reparto sí puede desbalancearse.
 
-## 27
+## 28
 - Lo que nadie te cuenta
 - La contraseña administrada: para restaurar el snapshot hay que volver a pedirla con ‑‑manage‑master‑password
 - Primero, un snapshot: un clúster recién restaurado no acepta el resize hasta tener un snapshot propio
@@ -298,12 +310,12 @@ Colombia User Group, Episodio II, 2026-10-08. Cada número sale de `results/2026
 
 **Notas:** Las tres primeras me pasaron en el simulacro, en ese orden, y no las encontré en la guía de migración. Las dos últimas sí aparecen en la documentación y en el blog de AWS. Todas quedaron resueltas en el script del repositorio.
 
-## 28
+## 29
 - DEMO
 
 **Notas:** Ahora veamos las consultas y los datos reales.
 
-## 29
+## 30
 - Demo: una consulta, dos clústeres
 - SELECT count(*)
 - FROM store_sales, household_demographics,
@@ -327,7 +339,7 @@ Colombia User Group, Episodio II, 2026-10-08. Cada número sale de `results/2026
 
 **Notas:** Esta es una consulta típica de lectura: cuenta ventas filtrando por hora del día, por tipo de hogar y por tienda. Lo pesado es que tiene que recorrer las 288 millones de filas de la tabla de ventas y cruzarlas con tres tablas más. En RA3 tarda 1,77 segundos; en RG, 0,67.
 
-## 30
+## 31
 - Demo: el mismo plan en los dos
 - RA3  (lq3 sobre Parquet)
 - XN Hash Join DS_BCAST_INNER
@@ -345,7 +357,7 @@ Colombia User Group, Episodio II, 2026-10-08. Cada número sale de `results/2026
 
 **Notas:** Así encontré la explicación del caso de Parquet. Si los planes fueran distintos, la diferencia estaría en el plan y no en el clúster. Son iguales: lo único que cambia es la pieza que lee S3, Spectrum en RA3 y los propios nodos en RG. Cuando veas una diferencia rara entre dos clústeres, empieza por aquí.
 
-## 31
+## 32
 - Demo: todos los resultados
 - [imagen]
 - Una página con todos los números de la charla:
@@ -355,7 +367,7 @@ Colombia User Group, Episodio II, 2026-10-08. Cada número sale de `results/2026
 
 **Notas:** Esta página reúne todos los números de la charla, sacados directamente de los archivos del repositorio. La abro un momento para que vean cada consulta. Abrir: https://claude.ai/artifact/1MgMakVPq4URRXQMZp4aVk (privada, con la sesión del orador; copia local: slides/demo/resultados.html).
 
-## 32
+## 33
 - ¿Migrar o no migrar?
 - Migra si
 - • Tus consultas leen y agregan muchos datos (dashboards, reportes)
@@ -368,11 +380,11 @@ Colombia User Group, Episodio II, 2026-10-08. Cada número sale de `results/2026
 - Mira Serverless si
 - • Usas Redshift solo a ratos
 - • No quieres administrar un clúster
-- • Cuesta USD 0,375 por RPU-hora (no lo probamos)
+- • A 4 RPU fue 3 veces más lento que RG: dale más capacidad
 
-**Notas:** Esta es mi respuesta a la pregunta del título. Para la mayoría de los equipos con RA3, migrar conviene: es más rápido, más barato y el cambio toma minutos. Pero prueba primero con tus datos, sobre todo si tu data lake está en Parquet o si tus consultas son de cálculo pesado. Serverless es otra decisión, que depende de cómo usas Redshift, y como no lo medí, no les doy un número.
+**Notas:** Esta es mi respuesta a la pregunta del título. Para la mayoría de los equipos con RA3, migrar conviene: es más rápido, más barato y el cambio toma minutos. Pero prueba primero con tus datos, sobre todo si tu data lake está en Parquet o si tus consultas son de cálculo pesado. Serverless es otra decisión, que depende de cómo usas Redshift: a 4 RPU fijos fue mucho más lento que RG, así que si lo eliges, dale más capacidad o deja que escale.
 
-## 33
+## 34
 - Llévate el laboratorio
 - github.com/andrezc98/redshift-redemption
 - La infraestructura, con Terraform y GitHub Actions (OIDC)
@@ -382,7 +394,7 @@ Colombia User Group, Episodio II, 2026-10-08. Cada número sale de `results/2026
 
 **Notas:** Todo lo que vieron está en el repositorio: la infraestructura, el programa que lanza las pruebas, el runbook con cada paso y los errores que me encontré. Cámbienle el dataset por el suyo y repitan las mediciones.
 
-## 34
+## 35
 - Kahoot
 - Pregunta 1
 - ¿Con qué lee RG los datos del data lake?
@@ -394,7 +406,7 @@ Colombia User Group, Episodio II, 2026-10-08. Cada número sale de `results/2026
 
 **Notas:** Kahoot. Pregunta 1: ¿Con qué lee RG los datos del data lake? a) Redshift Spectrum; b) Con sus propios nodos, sin Spectrum (correcta); c) Amazon Athena; d) Trabajos de AWS Glue. Comentario: RA3 usa Spectrum, que cobra USD 5 por TB leído; RG lee el lago con sus nodos y sin ese cobro. Pregunta 2: ¿Qué tipo de consultas mejoró más al pasar de RA3 a RG? a) Las de cálculo pesado, con ventanas y joins grandes; b) Las que leen y agregan muchos datos (correcta); c) Ninguna, quedaron igual; d) Solo las del data lake. Comentario: 2,28 veces en lectura contra 1,58 en cálculo; el promedio de las 20 consultas fue 1,90. Pregunta 3: Si tienes 4 nodos ra3.4xlarge, ¿cuántos rg.4xlarge recomienda AWS? a) 4; b) 3 (correcta); c) 2; d) 8. Comentario: un ra3.4xlarge tiene 12 vCPU y un rg.4xlarge, 16; 4 por 12 y 3 por 16 dan 48. Migrar uno a uno en ese tamaño te deja con un tercio de capacidad de más.
 
-## 35
+## 36
 - ¡Gracias!
 - Andrés Zeballos · Solutions Architect en phData
 - GitHub: andrezc98

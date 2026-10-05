@@ -120,6 +120,25 @@ solo lectura sale medida, no estimada. Luego guarda `skew-drill.csv` y
 Anotar en `results/<fecha>/drill.md`: inicio, fin de la ventana de solo lectura,
 fin total, y el skew por tabla de los dos CSV.
 
+## 4b. Serverless a 4 RPU (opcional, misma memoria que 2 × rg.xlarge)
+```bash
+infra -f action=apply -f rg_snapshot_id=rr-ra3-100gb -f serverless_enabled=true   # GO (4 RPU fijos, sin escalado automático)
+ARN=$(aws redshift describe-cluster-snapshots --snapshot-identifier rr-ra3-100gb --query 'Snapshots[0].SnapshotArn' --output text)
+aws redshift-serverless restore-from-snapshot --namespace-name rr-sls --workgroup-name rr-sls --snapshot-arn "$ARN" --manage-admin-password
+until [ "$(aws redshift-serverless get-namespace --namespace-name rr-sls --query namespace.status --output text)" = AVAILABLE ]; do sleep 20; done
+aws redshift-serverless update-namespace --namespace-name rr-sls --admin-username awsuser --manage-admin-password
+SEC=$(aws redshift-serverless get-namespace --namespace-name rr-sls --query namespace.adminPasswordSecretArn --output text)
+aws redshift-data batch-execute-statement --workgroup-name rr-sls --database tpcds --secret-arn "$SEC" \
+  --sqls "GRANT USAGE ON SCHEMA ice TO PUBLIC" "GRANT USAGE ON SCHEMA pq TO PUBLIC" "GRANT CREATE ON SCHEMA public TO PUBLIC"
+```
+La Data API sobre un workgroup entra como identidad IAM (`IAMR:...`), por eso los grants.
+La contraseña nueva tarda unos 2 minutos en funcionar: si el grant falla con «password
+authentication failed», reintentar. Luego, los mismos escenarios de §3 con
+`--target workgroup:rr-sls` (sin pausar nada) y, al final,
+`infra -f action=apply -f rg_snapshot_id=rr-ra3-100gb` para borrar Serverless.
+Si la sesión de SSO expira a mitad de las pruebas (`TokenRetrievalError`), volver a
+iniciar sesión y repetir solo lo que falló. Resultados: `results/2026-10-05/summary-serverless.md`.
+
 ## 5. Cierre (mismo día)
 ```bash
 rr sql --target cluster:rr-ra3 --file sql/lake_drop.sql

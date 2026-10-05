@@ -40,7 +40,7 @@ BODY = "Arial"
 X0, Y0, W0, H0 = 1.0, 3.5, 15.9, 6.0  # inside the template's rounded panel (inches)
 
 # template slide per deck slide: 2 agenda, 4/6/8 title+content, 10/12/14 transition (dark variants)
-SRC = [4, 4, 2, 4, 10, 6, 6, 6, 12, 8, 8, 8, 14, 4, 4, 4, 4, 4, 10, 6, 6, 6, 6, 6, 12, 8, 8, 14, 4, 4, 4, 6, 6, 6, 6]
+SRC = [4, 4, 2, 4, 10, 6, 6, 6, 12, 8, 8, 8, 14, 4, 4, 4, 4, 4, 4, 10, 6, 6, 6, 6, 6, 12, 8, 8, 14, 4, 4, 4, 6, 6, 6, 6]
 
 
 # ---------------------------------------------------------------- data
@@ -461,11 +461,11 @@ def fill(prs):
     set_title(s, "Lo que no probamos")
     outs = [("100 GB, no 10 TB", "Con pocos datos, el costo fijo de cada consulta pesa más"),
             ("Solo el tamaño xlarge", "No probamos 4xlarge ni 12xlarge"),
-            ("Serverless", "Lo comentamos con precios y documentación, sin pruebas propias"),
+            ("Serverless solo a 4 RPU", "Capacidad fija para comparar; no probamos cómo escala"),
             ("S3 Tables", "No lo pudimos probar; más adelante les cuento por qué")]
     for i, (t, b) in enumerate(outs):
         card(s, X0 + (i % 2) * 7.85, Y0 + (i // 2) * 2.95, 7.55, 2.65, t, b, size=22, title_color=ORANGE)
-    notes(s, "Prefiero decirlo desde el principio. Con 100 GB, buena parte de los datos que se consultan cabe en memoria, y eso reduce la ventaja de RG cuando hay que leer mucho. Si aun así RG gana, es buena señal; con más datos esperaría una diferencia mayor, pero eso no lo medí.")
+    notes(s, "Prefiero decirlo desde el principio. Con 100 GB, buena parte de los datos que se consultan cabe en memoria, y eso reduce la ventaja de RG cuando hay que leer mucho. Si aun así RG gana, es buena señal; con más datos esperaría una diferencia mayor, pero eso no lo medí. Serverless lo medimos solo con 4 RPU fijos, sin dejarlo escalar.")
 
     # 13 transition
     set_transition(S[12], "WAREHOUSE")
@@ -523,12 +523,28 @@ def fill(prs):
     textbox(s, X0, Y0 + 4.4, 15.2, 1.2, ["Dos razones que se suman: **el nodo RG cuesta 30 % menos por hora y además termina antes.**"], size=25, color=WHITE)
     notes(s, "Esto es lo que más le interesa a quien paga la factura. No solo el nodo es más barato: como termina antes, cada ejecución cuesta menos de la mitad.")
 
-    # 19 transition
-    set_transition(S[18], "DATA", "LAKE")
-    notes(S[18], "Ahora la parte más interesante, y la que más depende de cómo tienes guardados tus datos.")
+    # 19 serverless
+    s = S[18]
+    set_title(s, "¿Y Serverless?")
+    sa, sg, ss = per_q("rr-ra3-power-c7cb"), per_q("rr-rg-power-4628"), per_q("rr-sls-power-97ac")
+    sl = per_q("rr-sls-lake-glue-d3bd")
+    rows = [["", "RA3", "RG", "Serverless 4 RPU"],
+            ["20 consultas (total)", f"{es(sum(sa.values()))} s", f"**{es(sum(sg.values()))} s**", f"{es(sum(ss.values()))} s"],
+            ["Consultas por hora, 5 usuarios", str(int(ra3_q)), f"**{int(rg_q)}**", str(int(qph("rr-sls-concurrency-cdef")))],
+            ["Iceberg (6 consultas)", f"{es(sum(ice_a.values()))} s", f"**{es(sum(ice_g.values()))} s**", f"{es(sum(sl.values()))} s"],
+            ["Costo por ejecución de las 20", "USD 0,089", "**USD 0,041**", "USD 0,102"]]
+    table(s, X0, Y0, 15.2, rows, [5.0, 3.0, 3.0, 4.2], size=22, row_h=0.7)
+    textbox(s, X0, Y0 + 3.75, 15.2, 1.8, [f"Con la misma memoria (64 GB) y casi el mismo precio por hora, **RG fue {es(stats.geomean(stats.speedups(ss, sg).values()), 1)} veces más rápido que Serverless de 4 RPU.**",
+                                          "La capacidad quedó fija a propósito: la ventaja de Serverless es escalar cuando hace falta y no cobrar sin consultas."],
+            size=22, space=12)
+    notes(s, "Agregué Serverless con la misma memoria que el clúster RG: 4 RPU son 64 GB, y cuestan 1,50 dólares por hora contra 1,52 del clúster. Fijé la capacidad para que no escalara durante la prueba. En esas condiciones, RG fue unas tres veces más rápido en las consultas del warehouse, y Serverless quedó incluso por debajo de RA3 en casi todo. Pero ojo con la conclusión: 4 RPU es el tamaño de entrada, y lo que vende Serverless es otra cosa: escalar solo cuando hace falta y no cobrar cuando no hay consultas. Todas las pruebas de Serverless del día costaron 1,48 dólares. Fuente: results/2026-10-05/summary-serverless.md.")
+
+    # 20 transition
+    set_transition(S[19], "DATA", "LAKE")
+    notes(S[19], "Ahora la parte más interesante, y la que más depende de cómo tienes guardados tus datos.")
 
     # 20 three ways
-    s = S[19]
+    s = S[20]
     set_title(s, "El mismo dato, de tres formas")
     for i, (t, b) in enumerate([("Local", "Tablas dentro del warehouse"), ("Iceberg", "Tablas Iceberg en S3, registradas en Glue"),
                                 ("Parquet", "Archivos Parquet en S3, registrados en Glue")]):
@@ -539,7 +555,7 @@ def fill(prs):
     notes(s, "Escribí las mismas cinco tablas en Iceberg y en Parquet desde el warehouse, y comprobé que las seis consultas devuelven exactamente las mismas 483 filas en las tres versiones. Así, lo único que cambia es la forma de leer los datos.")
 
     # 21 iceberg
-    s = S[20]
+    s = S[21]
     ia, ig = sum(ice_a.values()), sum(ice_g.values())
     set_title(s, f"Iceberg: {es(stats.geomean(stats.speedups(ice_a, ice_g).values()), 2)}x, ya con caché", 48)
     qs = sorted(ice_a)
@@ -551,7 +567,7 @@ def fill(prs):
     notes(s, "RG lee Iceberg casi dos veces más rápido que RA3, con una salvedad: la primera vez que toca los datos tarda bastante más, porque los trae de S3 y los guarda en caché. Mi método no cuenta la primera repetición, así que este resultado es con la caché ya cargada. Si consultas el data lake de vez en cuando, ten en cuenta esa primera lectura.")
 
     # 22 parquet
-    s = S[21]
+    s = S[22]
     set_title(s, "Parquet: los archivos importan", 50)
     rows = [["Parquet store_sales", "RA3 (total)", "RG (total)", "RG frente a RA3 (media geom.)"],
             ["4 archivos de ≈3,8 GB", f"{es(pq1[0])} s", f"{es(pq1[1])} s", f"**{es(pq1[2], 2)}x**"],
@@ -563,7 +579,7 @@ def fill(prs):
     notes(s, "Este fue el resultado que más me sorprendió. Con Parquet, RG empezó siendo más lento que RA3. Revisé el plan de ejecución y era idéntico en los dos. La diferencia estaba en los archivos: Redshift los había escrito en solo cuatro archivos enormes, uno por slice, porque por defecto cada archivo puede llegar a 6.200 MB. Los reescribí en archivos de medio giga y RG pasó a ganar, mientras que RA3 empeoró. El mismo cambio ayuda a uno y perjudica al otro.")
 
     # 23 spectrum cost
-    s = S[22]
+    s = S[23]
     set_title(s, "Spectrum cobra aparte")
     stat(s, X0, Y0 + 0.1, 5.0, "USD 0,083", "18,2 GB leídos de Iceberg (2 repeticiones)", size=60, color=ORANGE)
     stat(s, X0 + 5.2, Y0 + 0.1, 5.0, "USD 0,092", "20,2 GB leídos de Parquet (2 repeticiones)", size=60, color=ORANGE)
@@ -572,7 +588,7 @@ def fill(prs):
     notes(s, "En el laboratorio son centavos, porque son 100 GB. Pero esto crece con el volumen y con la frecuencia: un equipo que lee decenas de TB al mes desde el data lake lo nota en la factura. En RG ese cobro desaparece.")
 
     # 24 lessons
-    s = S[23]
+    s = S[24]
     set_title(s, "Lo que aprendimos del data lake")
     les = [("S3 Tables pide IAM", "cross-database reference to database \"…@s3tablescatalog\" is not supported"),
            ("Iceberg no acepta CHAR", "CHAR type is not supported for column \"d_date_id\" in Iceberg table creation"),
@@ -587,11 +603,11 @@ def fill(prs):
     notes(s, "Quería probar S3 Tables y no pude, por una razón de diseño: esas tablas solo se leen conectándose con una identidad de IAM, y mi programa se conecta con un usuario de base de datos. Cambiar de usuario solo para esa prueba habría medido otra cosa. Además, Iceberg no acepta columnas CHAR, y Lake Formation exige permisos explícitos sobre las bases de Glue.")
 
     # 25 transition
-    set_transition(S[24], "LA", "MIGRACIÓN")
-    notes(S[24], "Supongamos que decides migrar. ¿Cuánto cuesta en tiempo y en sustos?")
+    set_transition(S[25], "LA", "MIGRACIÓN")
+    notes(S[25], "Supongamos que decides migrar. ¿Cuánto cuesta en tiempo y en sustos?")
 
     # 26 drill timeline
-    s = S[25]
+    s = S[26]
     set_title(s, "La migración tomó 2 min 48 s")
     probes = [{"ts": "2026-10-05T19:05:47Z", "write_probe": "START"}] + list(csv.DictReader(open(R / "drill-log.csv")))  # start from drill.md
     n = len(probes)
@@ -612,7 +628,7 @@ def fill(prs):
     notes(s, "Restauré una copia del clúster RA3 y lo convertí a RG con un elastic resize, intentando escribir cada 30 segundos. Empezó a las 19:05:47 y terminó a las 19:08:35. El clúster quedó en solo lectura entre 1 minuto 35 y 2 minutos 42 segundos; el rango se debe a que revisábamos cada 30 segundos. Como pasamos de 2 nodos a 2 nodos, los datos quedaron repartidos igual. Ojo: si cambias la cantidad de nodos, como al pasar de 4 a 3 en el tamaño 4xlarge, el reparto sí puede desbalancearse.")
 
     # 27 traps
-    s = S[26]
+    s = S[27]
     set_title(s, "Lo que nadie te cuenta")
     traps = ["**La contraseña administrada:** para restaurar el snapshot hay que volver a pedirla con ‑‑manage‑master‑password",
              "**Primero, un snapshot:** un clúster recién restaurado no acepta el resize hasta tener un snapshot propio",
@@ -623,11 +639,11 @@ def fill(prs):
     notes(s, "Las tres primeras me pasaron en el simulacro, en ese orden, y no las encontré en la guía de migración. Las dos últimas sí aparecen en la documentación y en el blog de AWS. Todas quedaron resueltas en el script del repositorio.")
 
     # 28 transition
-    set_transition(S[27], "DEMO")
-    notes(S[27], "Ahora veamos las consultas y los datos reales.")
+    set_transition(S[28], "DEMO")
+    notes(S[28], "Ahora veamos las consultas y los datos reales.")
 
     # 29 demo query
-    s = S[28]
+    s = S[29]
     set_title(s, "Demo: una consulta, dos clústeres", 50)
     code(s, X0, Y0, 10.2, 4.3, "SELECT count(*)\nFROM store_sales, household_demographics,\n     time_dim, store\n"
          "WHERE ss_sold_time_sk = time_dim.t_time_sk\n  AND ss_hdemo_sk = household_demographics.hd_demo_sk\n"
@@ -640,7 +656,7 @@ def fill(prs):
     notes(s, "Esta es una consulta típica de lectura: cuenta ventas filtrando por hora del día, por tipo de hogar y por tienda. Lo pesado es que tiene que recorrer las 288 millones de filas de la tabla de ventas y cruzarlas con tres tablas más. En RA3 tarda 1,77 segundos; en RG, 0,67.")
 
     # 30 demo explain
-    s = S[29]
+    s = S[30]
     set_title(s, "Demo: el mismo plan en los dos", 50)
     code(s, X0, Y0, 7.6, 3.3, "RA3  (lq3 sobre Parquet)\n\nXN Hash Join DS_BCAST_INNER\n  XN Hash Join DS_BCAST_INNER\n"
          "    XN S3 Query Scan ss\n      S3 Seq Scan pq.store_sales\n         rows=287997024", size=17)
@@ -651,7 +667,7 @@ def fill(prs):
     notes(s, "Así encontré la explicación del caso de Parquet. Si los planes fueran distintos, la diferencia estaría en el plan y no en el clúster. Son iguales: lo único que cambia es la pieza que lee S3, Spectrum en RA3 y los propios nodos en RG. Cuando veas una diferencia rara entre dos clústeres, empieza por aquí.")
 
     # 31 demo results page
-    s = S[30]
+    s = S[31]
     set_title(s, "Demo: todos los resultados")
     shot = ROOT / "slides/assets/resultados-captura.png"
     if shot.exists():
@@ -665,17 +681,17 @@ def fill(prs):
     notes(s, "Esta página reúne todos los números de la charla, sacados directamente de los archivos del repositorio. La abro un momento para que vean cada consulta. Abrir: https://claude.ai/artifact/1MgMakVPq4URRXQMZp4aVk (privada, con la sesión del orador; copia local: slides/demo/resultados.html).")
 
     # 32 decision
-    s = S[31]
+    s = S[32]
     set_title(s, "¿Migrar o no migrar?")
     cols = [("Migra si", ["Tus consultas leen y agregan muchos datos (dashboards, reportes)", "Consultas seguido el data lake", "Usas xlplus o 4xlarge: pagas 30 % menos por vCPU"], ACCENT),
             ("Prueba antes si", ["Tus consultas son de cálculo pesado (ventanas, joins grandes)", "Tu data lake está en Parquet con archivos grandes", "Quieres usar S3 Tables con usuarios de base de datos"], ORANGE),
-            ("Mira Serverless si", ["Usas Redshift solo a ratos", "No quieres administrar un clúster", "Cuesta USD 0,375 por RPU-hora (no lo probamos)"], RA3C)]
+            ("Mira Serverless si", ["Usas Redshift solo a ratos", "No quieres administrar un clúster", "A 4 RPU fue 3 veces más lento que RG: dale más capacidad"], RA3C)]
     for i, (t, items, col) in enumerate(cols):
         card(s, X0 + i * 5.2, Y0, 4.9, 4.4, t, ["• " + x for x in items], size=21, title_size=30, title_color=col)
-    notes(s, "Esta es mi respuesta a la pregunta del título. Para la mayoría de los equipos con RA3, migrar conviene: es más rápido, más barato y el cambio toma minutos. Pero prueba primero con tus datos, sobre todo si tu data lake está en Parquet o si tus consultas son de cálculo pesado. Serverless es otra decisión, que depende de cómo usas Redshift, y como no lo medí, no les doy un número.")
+    notes(s, "Esta es mi respuesta a la pregunta del título. Para la mayoría de los equipos con RA3, migrar conviene: es más rápido, más barato y el cambio toma minutos. Pero prueba primero con tus datos, sobre todo si tu data lake está en Parquet o si tus consultas son de cálculo pesado. Serverless es otra decisión, que depende de cómo usas Redshift: a 4 RPU fijos fue mucho más lento que RG, así que si lo eliges, dale más capacidad o deja que escale.")
 
     # 33 take the lab
-    s = S[32]
+    s = S[33]
     set_title(s, "Llévate el laboratorio")
     textbox(s, X0, Y0 + 0.1, 15.2, 1.2, ["github.com/andrezc98/redshift-redemption"], size=44, color=ACCENT, bold=True)
     textbox(s, X0, Y0 + 1.7, 15.2, 4.0, ["La infraestructura, con Terraform y GitHub Actions (OIDC)",
@@ -685,7 +701,7 @@ def fill(prs):
     notes(s, "Todo lo que vieron está en el repositorio: la infraestructura, el programa que lanza las pruebas, el runbook con cada paso y los errores que me encontré. Cámbienle el dataset por el suyo y repitan las mediciones.")
 
     # 34 kahoot
-    s = S[33]
+    s = S[34]
     set_title(s, "Kahoot")
     qs3 = ["¿Con qué lee RG los datos del data lake?",
            "¿Qué tipo de consultas mejoró más al pasar de RA3 a RG?",
@@ -698,7 +714,7 @@ def fill(prs):
              "Pregunta 3: Si tienes 4 nodos ra3.4xlarge, ¿cuántos rg.4xlarge recomienda AWS? a) 4; b) 3 (correcta); c) 2; d) 8. Comentario: un ra3.4xlarge tiene 12 vCPU y un rg.4xlarge, 16; 4 por 12 y 3 por 16 dan 48. Migrar uno a uno en ese tamaño te deja con un tercio de capacidad de más.")
 
     # 35 thanks
-    s = S[34]
+    s = S[35]
     set_title(s, "¡Gracias!", 72)
     textbox(s, X0, Y0 + 0.4, 15.2, 4.5, ["**Andrés Zeballos** · Solutions Architect en phData",
                                           "GitHub: andrezc98",
